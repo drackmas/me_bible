@@ -1,11 +1,14 @@
-name: Build Windows App
+name: Build Multi-Platform App
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build:
+  # ----------------------------------------------------
+  # 1. WINDOWS BUILD
+  # ----------------------------------------------------
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +21,45 @@ jobs:
         with:
           name: windows-release
           path: build/windows/x64/runner/Release/
+
+  # ----------------------------------------------------
+  # 2. LINUX BUILD
+  # ----------------------------------------------------
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+      - run: flutter pub get
+      - run: flutter build linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: build/linux/x64/release/bundle/
+
+  # ----------------------------------------------------
+  # 3. ANDROID BUILD (APK)
+  # ----------------------------------------------------
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
