@@ -1,10 +1,10 @@
 # me_bible
 
-A new Flutter project.
+A flutter project to make a Bible commentary app. this is meant for documenting the Bible changes but it can be used to take your own notes instead. 
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Download and install the release. or you can come the repo and install yourself if you have flutter installed. 
 
 A few resources to get you started if this is your first Flutter project:
 
