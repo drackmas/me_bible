@@ -1,0 +1,103 @@
+{
+  "commentaries": {
+    "Leviticus": [
+      {
+        "chapter": 8,
+        "verse": 26,
+        "text": "",
+        "highlights": [],
+        "hashtags": [
+          {
+            "text": "LORD",
+            "color": "red"
+          },
+          {
+            "text": "Lord!",
+            "color": "green"
+          }
+        ],
+        "updatedAt": "2026-08-01T13:41:55.103440"
+      }
+    ],
+    "Genesis": [
+      {
+        "chapter": 1,
+        "verse": 1,
+        "text": "God created the \"heavens\" and the earth.",
+        "highlights": [
+          {
+            "text": "heaven",
+            "color": "yellow"
+          }
+        ],
+        "hashtags": [
+          {
+            "text": "heaven",
+            "color": "red"
+          },
+          {
+            "text": "heavens",
+            "color": "green"
+          }
+        ],
+        "updatedAt": "2026-08-01T13:27:19.639565"
+      },
+      {
+        "chapter": 7,
+        "verse": 1,
+        "text": "",
+        "highlights": [
+          {
+            "text": "LORD",
+            "color": "yellow"
+          },
+          {
+            "text": "house",
+            "color": "yellow"
+          }
+        ],
+        "hashtags": [
+          {
+            "text": "Lord",
+            "color": "green"
+          },
+          {
+            "text": "LORD!",
+            "color": "red"
+          }
+        ],
+        "updatedAt": "2026-08-01T13:44:27.661090"
+      }
+    ],
+    "Exodus": [
+      {
+        "chapter": 17,
+        "verse": 3,
+        "text": "asdfasdf",
+        "highlights": [],
+        "hashtags": [],
+        "updatedAt": "2026-07-31T22:44:30.638501"
+      }
+    ]
+  },
+  "tags": [
+    {
+      "name": "house",
+      "phrase": "house"
+    },
+    {
+      "name": "LORD",
+      "phrase": "LORD"
+    },
+    {
+      "name": "Son of man",
+      "phrase": "Son of man"
+    },
+    {
+      "name": "Jonas",
+      "phrase": "Jonas"
+    }
+  ],
+  "exportedAt": "2026-08-01T14:26:27.352140",
+  "version": 2
+}
