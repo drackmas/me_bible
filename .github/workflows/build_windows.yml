@@ -14,9 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: 'stable'
       - run: flutter pub get
       - run: flutter build windows
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release
@@ -31,13 +32,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Linux Build Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: 'stable'
+      - run: flutter config --enable-linux-desktop
       - run: flutter pub get
-      - run: flutter build linux
+      - run: flutter build linux --release
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-release
@@ -56,9 +59,10 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: 'stable'
       - run: flutter pub get
       - run: flutter build apk --release
+
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
