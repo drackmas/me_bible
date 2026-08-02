@@ -14,9 +14,6 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   List<Tag> tags = [];
   bool loading = true;
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phraseController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -26,62 +23,164 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   Future<void> _loadTags() async {
     setState(() => loading = true);
     tags = await TagService.loadAll();
-    // Sort alphabetically
     tags.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() => loading = false);
   }
 
-  Future<void> _createTag() async {
-    final name = nameController.text.trim();
-    final phrase = phraseController.text.trim().isEmpty
-        ? name
-        : phraseController.text.trim();
+  Future<void> _showTagEditor({Tag? existing}) async {
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    final phraseController = TextEditingController(text: existing?.phrase ?? '');
+    final variantController = TextEditingController();
+    List<String> variants = List.from(existing?.variants ?? []);
 
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a tag name')),
-      );
-      return;
-    }
-
-    // Show loading dialog
-    showDialog(
+    final result = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Expanded(child: Text('Scanning the whole Bible...\nThis may take a few seconds.')),
-          ],
-        ),
-      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text(existing == null ? 'Create Tag' : 'Edit Tag'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tag name (what you see)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phraseController,
+                      decoration: const InputDecoration(
+                        labelText: 'Main search phrase',
+                        border: OutlineInputBorder(),
+                        helperText: 'Exact phrase to search for',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Extra matching phrases (variants)',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: variantController,
+                            decoration: const InputDecoration(
+                              hintText: 'Add another phrase...',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle),
+                          onPressed: () {
+                            final text = variantController.text.trim();
+                            if (text.isNotEmpty && !variants.contains(text)) {
+                              setStateDialog(() {
+                                variants.add(text);
+                                variantController.clear();
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    if (variants.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        children: variants.map((v) {
+                          return Chip(
+                            label: Text(v),
+                            onDeleted: () {
+                              setStateDialog(() => variants.remove(v));
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(existing == null ? 'Create' : 'Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
-    try {
-      final newTag = await TagService.createTag(name, phrase);
+    if (result == true) {
+      final name = nameController.text.trim();
+      final phrase = phraseController.text.trim();
 
-      if (mounted) {
-        Navigator.pop(context); // close loading dialog
-        nameController.clear();
-        phraseController.clear();
-        await _loadTags();
-
+      if (name.isEmpty || phrase.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Tag "$name" created with ${newTag.occurrences.length} verses',
-            ),
-          ),
+          const SnackBar(content: Text('Name and main phrase are required')),
         );
+        return;
       }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create tag: $e')),
-        );
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Scanning Bible...'),
+            ],
+          ),
+        ),
+      );
+
+      try {
+        if (existing == null) {
+          await TagService.createTag(name, phrase, variants: variants);
+        } else {
+          final updated = Tag(
+            name: name,
+            phrase: phrase,
+            variants: variants,
+          );
+          await TagService.updateTag(updated);
+        }
+
+        if (mounted) {
+          Navigator.pop(context); // close loading
+          await _loadTags();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(existing == null
+                    ? 'Tag created'
+                    : 'Tag updated')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       }
     }
   }
@@ -91,16 +190,14 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Tag?'),
-        content: Text('Delete the tag "${tag.name}"?\nThis cannot be undone.'),
+        content: Text('Delete "${tag.name}"? This cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -108,19 +205,52 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     if (confirm == true) {
       await TagService.deleteTag(tag.name);
       await _loadTags();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tag "${tag.name}" deleted')),
-        );
-      }
     }
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    phraseController.dispose();
-    super.dispose();
+  Future<void> _rebuildAll() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rebuild All Tags?'),
+        content: const Text(
+            'This will re-scan the entire Bible for every tag using the latest matching rules. It may take a while.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Rebuild')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Rebuilding all tags...'),
+            ],
+          ),
+        ),
+      );
+
+      await TagService.rebuildAllTags();
+
+      if (mounted) {
+        Navigator.pop(context);
+        await _loadTags();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All tags rebuilt')),
+        );
+      }
+    }
   }
 
   @override
@@ -128,100 +258,56 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Tags'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Rebuild all tags',
+            onPressed: _rebuildAll,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showTagEditor(),
+          ),
+        ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // ===== CREATE NEW TAG =====
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tag name',
-                          hintText: 'e.g. Son of Man',
-                          border: OutlineInputBorder(),
-                        ),
-                        textCapitalization: TextCapitalization.words,
+          : tags.isEmpty
+              ? const Center(child: Text('No tags yet.\nTap + to create one.'))
+              : ListView.builder(
+                  itemCount: tags.length,
+                  itemBuilder: (context, index) {
+                    final tag = tags[index];
+                    return ListTile(
+                      title: Text(tag.name),
+                      subtitle: Text(
+                        '${tag.occurrences.length} verses'
+                        '${tag.variants.isNotEmpty ? ' • +${tag.variants.length} variants' : ''}',
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: phraseController,
-                        decoration: const InputDecoration(
-                          labelText: 'Search phrase (optional)',
-                          hintText: 'Leave empty to use the tag name',
-                          border: OutlineInputBorder(),
-                          helperText: 'The exact words to search for in every verse',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: _createTag,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Tag & Scan Bible'),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(height: 1),
-
-                // ===== EXISTING TAGS =====
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Your Tags (${tags.length})',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Expanded(
-                  child: tags.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No tags yet.\nCreate one above!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showTagEditor(existing: tag),
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: tags.length,
-                          itemBuilder: (context, index) {
-                            final tag = tags[index];
-                            return ListTile(
-                              title: Text(tag.name),
-                              subtitle: Text(
-                                '${tag.occurrences.length} verses • phrase: "${tag.phrase}"',
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => _deleteTag(tag),
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => TagVersesScreen(tag: tag),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            onPressed: () => _deleteTag(tag),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TagVersesScreen(tag: tag),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ],
-            ),
     );
   }
 }

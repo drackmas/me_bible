@@ -26,15 +26,17 @@ class TagService {
   static Future<void> saveAll(List<Tag> tags) async {
     final path = await _getPath();
     final file = File(path);
-
-    // Save the full version (with occurrences) to local storage
     final jsonList = tags.map((t) => t.toJsonFull()).toList();
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(jsonList));
   }
 
-  /// Creates a new tag and scans the entire Bible
-  static Future<Tag> createTag(String name, String phrase) async {
-    final tag = Tag(name: name, phrase: phrase);
+  /// Creates a new tag
+  static Future<Tag> createTag(
+    String name,
+    String phrase, {
+    List<String> variants = const [],
+  }) async {
+    final tag = Tag(name: name, phrase: phrase, variants: variants);
     await _rebuildOccurrences(tag);
 
     final allTags = await loadAll();
@@ -45,22 +47,51 @@ class TagService {
     return tag;
   }
 
+  /// Updates an existing tag
+  static Future<void> updateTag(Tag updatedTag) async {
+    await _rebuildOccurrences(updatedTag);
+
+    final allTags = await loadAll();
+    final index = allTags.indexWhere(
+        (t) => t.name.toLowerCase() == updatedTag.name.toLowerCase());
+
+    if (index >= 0) {
+      allTags[index] = updatedTag;
+    } else {
+      allTags.add(updatedTag);
+    }
+
+    await saveAll(allTags);
+  }
+
   static Future<void> deleteTag(String name) async {
     final allTags = await loadAll();
     allTags.removeWhere((t) => t.name.toLowerCase() == name.toLowerCase());
     await saveAll(allTags);
   }
 
-  /// Scans the whole Bible and fills the occurrences list
+  /// Scans the whole Bible using main phrase + all variants
   static Future<void> _rebuildOccurrences(Tag tag) async {
     final books = await BibleService.loadBookList();
     final List<TagOccurrence> occurrences = [];
-    final lowerPhrase = tag.phrase.toLowerCase();
+
+    // All phrases we should match (main + variants)
+    final allPhrases = [tag.phrase, ...tag.variants]
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toSet()
+        .toList();
+
+    final patterns = allPhrases.map((p) {
+      final escaped = RegExp.escape(p);
+      return RegExp(r'\b' + escaped + r'\b', caseSensitive: true);
+    }).toList();
 
     for (final book in books) {
       final verses = await BibleService.loadBook(book);
       for (final verse in verses) {
-        if (verse.text.toLowerCase().contains(lowerPhrase)) {
+        final matches = patterns.any((pattern) => pattern.hasMatch(verse.text));
+        if (matches) {
           occurrences.add(TagOccurrence(
             book: book,
             chapter: verse.chapter,
@@ -73,7 +104,7 @@ class TagService {
     tag.occurrences = occurrences;
   }
 
-  /// Call this after importing tags (they come without occurrences)
+  /// Used after importing tags that have no occurrences
   static Future<void> rebuildAllMissingOccurrences() async {
     final tags = await loadAll();
     bool changed = false;
@@ -90,13 +121,12 @@ class TagService {
     }
   }
 
-  /// Helper used by the reader
-  static Future<List<Tag>> getTagsForVerse(
-      String book, int chapter, int verse) async {
-    final allTags = await loadAll();
-    return allTags.where((tag) {
-      return tag.occurrences.any((o) =>
-          o.book == book && o.chapter == chapter && o.verse == verse);
-    }).toList();
+  /// Force rebuild every tag (useful after fixing matching logic)
+  static Future<void> rebuildAllTags() async {
+    final tags = await loadAll();
+    for (final tag in tags) {
+      await _rebuildOccurrences(tag);
+    }
+    await saveAll(tags);
   }
 }
