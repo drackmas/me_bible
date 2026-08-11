@@ -18,12 +18,17 @@ class BookChapterChooser extends StatefulWidget {
   });
 
   @override
-  State<BookChapterChooser> createState() => _BookChapterChooserState();
+  State<BookChapterChooser> createState() =>
+      _BookChapterChooserState();
 }
 
-class _BookChapterChooserState extends State<BookChapterChooser> {
+class _BookChapterChooserState
+    extends State<BookChapterChooser> {
+
   String? selectedBook;
-  int maxChapter = 1;
+
+  List<int> chapterNumbers = [];
+
   bool loadingChapters = false;
 
   // AndBible-style short abbreviations
@@ -36,12 +41,12 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'Joshua': 'Josh',
     'Judges': 'Judg',
     'Ruth': 'Ruth',
-    '1 Samuel': '1Sam',
-    '2 Samuel': '2Sam',
-    '1 Kings': '1Kgs',
-    '2 Kings': '2Kgs',
-    '1 Chronicles': '1Chr',
-    '2 Chronicles': '2Chr',
+    '1Samuel': '1Sam',
+    '2Samuel': '2Sam',
+    '1Kings': '1Kgs',
+    '2Kings': '2Kgs',
+    '1Chronicles': '1Chr',
+    '2Chronicles': '2Chr',
     'Ezra': 'Ezra',
     'Nehemiah': 'Neh',
     'Esther': 'Esth',
@@ -49,7 +54,7 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'Psalms': 'Ps',
     'Proverbs': 'Prov',
     'Ecclesiastes': 'Eccl',
-    'Song of Solomon': 'Song',
+    'SongofSolomon': 'Song',
     'Isaiah': 'Isa',
     'Jeremiah': 'Jer',
     'Lamentations': 'Lam',
@@ -73,76 +78,140 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'John': 'John',
     'Acts': 'Acts',
     'Romans': 'Rom',
-    '1 Corinthians': '1Cor',
-    '2 Corinthians': '2Cor',
+    '1Corinthians': '1Cor',
+    '2Corinthians': '2Cor',
     'Galatians': 'Gal',
     'Ephesians': 'Eph',
     'Philippians': 'Phil',
     'Colossians': 'Col',
-    '1 Thessalonians': '1Thess',
-    '2 Thessalonians': '2Thess',
-    '1 Timothy': '1Tim',
-    '2 Timothy': '2Tim',
+    '1Thessalonians': '1Thess',
+    '2Thessalonians': '2Thess',
+    '1Timothy': '1Tim',
+    '2Timothy': '2Tim',
     'Titus': 'Titus',
     'Philemon': 'Phlm',
     'Hebrews': 'Heb',
     'James': 'Jas',
-    '1 Peter': '1Pet',
-    '2 Peter': '2Pet',
-    '1 John': '1John',
-    '2 John': '2John',
-    '3 John': '3John',
+    '1Peter': '1Pet',
+    '2Peter': '2Pet',
+    '1John': '1John',
+    '2John': '2John',
+    '3John': '3John',
     'Jude': 'Jude',
     'Revelation': 'Rev',
+
+    // Added books
+    '1Enoch': '1Enoch',
+    '2Enoch': '2Enoch',
+    '1Esdras': '1Esd',
+    '2Esdras': '2Esd',
+    '1Maccabees': '1Mac',
+    '2Maccabees': '2Mac',
+    'AdditionsToEsther': 'AddEsth',
+    'WisdomOfSolomon': 'Wis',
+    'Sirach': 'Sir',
+    '1Baruch': '1Bar',
+    '2Baruch': '2Bar',
+    'PrayerofAzariah': 'PrAzar',
+    'Susanna': 'Sus',
+    'BelAndTheDragon': 'Bel',
+    'PrayerofManasseh': 'PrMan',
+    'EpistleofJeremiah': 'EpJer',
   };
 
   @override
   void initState() {
     super.initState();
+
     selectedBook = widget.currentBook;
-    _loadMaxChapter(widget.currentBook);
+
+    _loadChapterNumbers(
+      widget.currentBook,
+    );
   }
 
-  Future<void> _loadMaxChapter(String book) async {
-    setState(() => loadingChapters = true);
-    maxChapter = await BibleService.getMaxChapter(book);
-    setState(() => loadingChapters = false);
+  Future<void> _loadChapterNumbers(
+    String book,
+  ) async {
+    setState(() {
+      loadingChapters = true;
+      chapterNumbers = [];
+    });
+
+    final numbers =
+        await BibleService.getChapterNumbers(book);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      chapterNumbers = numbers;
+      loadingChapters = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+
         const SizedBox(height: 12),
+
         Container(
           width: 40,
           height: 4,
           decoration: BoxDecoration(
             color: Colors.grey[400],
-            borderRadius: BorderRadius.circular(2),
+            borderRadius:
+                BorderRadius.circular(2),
           ),
         ),
+
         const SizedBox(height: 8),
+
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
           child: Row(
             children: [
+
               Text(
-                selectedBook == null ? 'Select Book' : selectedBook!,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                selectedBook == null
+                    ? 'Select Book'
+                    : selectedBook!,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const Spacer(),
+
               if (selectedBook != null)
                 TextButton(
-                  onPressed: () => setState(() => selectedBook = null),
-                  child: const Text('All Books'),
+                  onPressed: () {
+                    setState(() {
+                      selectedBook = null;
+                      chapterNumbers = [];
+                    });
+                  },
+                  child: const Text(
+                    'All Books',
+                  ),
                 ),
             ],
           ),
         ),
+
         const Divider(height: 1),
+
         Expanded(
-          child: selectedBook == null ? _buildBookGrid() : _buildChapterGrid(),
+          child: selectedBook == null
+              ? _buildBookGrid()
+              : _buildChapterGrid(),
         ),
       ],
     );
@@ -151,39 +220,69 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
   Widget _buildBookGrid() {
     return GridView.builder(
       controller: widget.scrollController,
+
       padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         childAspectRatio: 1.55,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
+
       itemCount: widget.allBooks.length,
+
       itemBuilder: (context, index) {
-        final book = widget.allBooks[index];
-        final isSelected = book == widget.currentBook;
-        final abbrev = abbreviations[book] ?? book;
+        final book =
+            widget.allBooks[index];
+
+        final isSelected =
+            book == widget.currentBook;
+
+        final abbrev =
+            abbreviations[book] ?? book;
 
         return Material(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
+              ? Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+              : Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest,
+
+          borderRadius:
+              BorderRadius.circular(10),
+
           child: InkWell(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius:
+                BorderRadius.circular(10),
+
             onTap: () {
-              setState(() => selectedBook = book);
-              _loadMaxChapter(book);
+              setState(() {
+                selectedBook = book;
+              });
+
+              _loadChapterNumbers(book);
             },
+
             child: Center(
               child: Text(
                 abbrev,
+
                 style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: isSelected
+                      ? FontWeight.bold
+                      : FontWeight.w500,
+
                   color: isSelected
-                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      ? Theme.of(context)
+                          .colorScheme
+                          .onPrimaryContainer
                       : null,
                 ),
+
                 textAlign: TextAlign.center,
               ),
             ),
@@ -195,41 +294,92 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
 
   Widget _buildChapterGrid() {
     if (loadingChapters) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (chapterNumbers.isEmpty) {
+      return const Center(
+        child: Text(
+          'No chapters found.',
+        ),
+      );
     }
 
     return GridView.builder(
       controller: widget.scrollController,
+
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         childAspectRatio: 1.15,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: maxChapter,
+
+      // IMPORTANT:
+      // Use the actual number of chapters in the JSON.
+      itemCount: chapterNumbers.length,
+
       itemBuilder: (context, index) {
-        final chapter = index + 1;
-        final isSelected = selectedBook == widget.currentBook &&
+
+        // IMPORTANT:
+        // Do NOT use index + 1.
+        //
+        // AdditionsToEsther will therefore produce:
+        //
+        // 10 11 12 13 14 15 16
+        //
+        // instead of:
+        //
+        // 1 2 3 4 5 6 ... 16
+        //
+        final chapter =
+            chapterNumbers[index];
+
+        final isSelected =
+            selectedBook == widget.currentBook &&
             chapter == widget.currentChapter;
 
         return Material(
           color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
+              ? Theme.of(context)
+                  .colorScheme
+                  .primary
+              : Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest,
+
+          borderRadius:
+              BorderRadius.circular(10),
+
           child: InkWell(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius:
+                BorderRadius.circular(10),
+
             onTap: () {
-              widget.onChapterSelected(selectedBook!, chapter);
+              widget.onChapterSelected(
+                selectedBook!,
+                chapter,
+              );
             },
+
             child: Center(
               child: Text(
                 '$chapter',
+
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : null,
+
+                  fontWeight:
+                      FontWeight.bold,
+
+                  color: isSelected
+                      ? Colors.white
+                      : null,
                 ),
               ),
             ),
