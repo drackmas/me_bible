@@ -22,7 +22,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build windows
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: windows-release
           path: build/windows/x64/runner/Release/
@@ -50,7 +50,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: linux-release
           path: build/linux/x64/release/bundle/
@@ -77,7 +77,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build apk --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
