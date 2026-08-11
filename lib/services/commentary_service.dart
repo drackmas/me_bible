@@ -143,6 +143,20 @@ class CommentaryService {
       'tags': tagCount,
     };
   }
+  
+  // ============================================================
+  // ERASE
+  // ============================================================
+  static Future<void> eraseAllCommentaries() async {
+    final books = await _getAllBooksWithCommentaries();
+    for (final book in books) {
+      final path = await _getPath(book);
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
 
   static Future<List<String>> _getAllBooksWithCommentaries() async {
     final dir = await AppStorage.dataDir;

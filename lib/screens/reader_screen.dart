@@ -45,7 +45,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _init() async {
-    allBooks = await BibleService.loadBookList();
+    allBooks = await BibleService.loadAllBooks(); // clearer name
     await _loadBook();
   }
 
@@ -123,7 +123,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: BookChapterChooser(
-                allBooks: allBooks,
+                // ← allBooks parameter removed
                 currentBook: currentBook,
                 currentChapter: currentChapter,
                 scrollController: scrollController,

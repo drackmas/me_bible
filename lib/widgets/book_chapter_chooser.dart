@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/bible_service.dart';
 
 class BookChapterChooser extends StatefulWidget {
-  final List<String> allBooks;
   final String currentBook;
   final int currentChapter;
   final ScrollController scrollController;
@@ -10,7 +9,6 @@ class BookChapterChooser extends StatefulWidget {
 
   const BookChapterChooser({
     super.key,
-    required this.allBooks,
     required this.currentBook,
     required this.currentChapter,
     required this.scrollController,
@@ -18,20 +16,17 @@ class BookChapterChooser extends StatefulWidget {
   });
 
   @override
-  State<BookChapterChooser> createState() =>
-      _BookChapterChooserState();
+  State<BookChapterChooser> createState() => _BookChapterChooserState();
 }
 
-class _BookChapterChooserState
-    extends State<BookChapterChooser> {
-
+class _BookChapterChooserState extends State<BookChapterChooser> {
   String? selectedBook;
+  List<String> currentBooks = [];
+  int maxChapter = 1;
+  bool loading = false;
+  bool showingBooks = false; // false = showing chapters of current book
 
-  List<int> chapterNumbers = [];
-
-  bool loadingChapters = false;
-
-  // AndBible-style short abbreviations
+  // Short abbreviations
   static const Map<String, String> abbreviations = {
     'Genesis': 'Gen',
     'Exodus': 'Exod',
@@ -99,14 +94,11 @@ class _BookChapterChooserState
     '3John': '3John',
     'Jude': 'Jude',
     'Revelation': 'Rev',
-
-    // Added books
-    '1Enoch': '1Enoch',
-    '2Enoch': '2Enoch',
+    // Apocrypha
     '1Esdras': '1Esd',
     '2Esdras': '2Esd',
-    '1Maccabees': '1Mac',
-    '2Maccabees': '2Mac',
+    'Tobit': 'Tob',
+    'Judith': 'Jdt',
     'AdditionsToEsther': 'AddEsth',
     'WisdomOfSolomon': 'Wis',
     'Sirach': 'Sir',
@@ -116,38 +108,45 @@ class _BookChapterChooserState
     'Susanna': 'Sus',
     'BelAndTheDragon': 'Bel',
     'PrayerofManasseh': 'PrMan',
+    '1Maccabees': '1Macc',
+    '2Maccabees': '2Macc',
     'EpistleofJeremiah': 'EpJer',
+    '1Enoch': '1En',
+    '2Enoch': '2En',
   };
 
   @override
   void initState() {
     super.initState();
-
     selectedBook = widget.currentBook;
-
-    _loadChapterNumbers(
-      widget.currentBook,
-    );
+    _loadMaxChapter(widget.currentBook);
   }
 
-  Future<void> _loadChapterNumbers(
-    String book,
-  ) async {
+  Future<void> _loadMaxChapter(String book) async {
+    setState(() => loading = true);
+    maxChapter = await BibleService.getMaxChapter(book);
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _showKjvBooks() async {
+    setState(() => loading = true);
+    final books = await BibleService.loadKjvBooks();
     setState(() {
-      loadingChapters = true;
-      chapterNumbers = [];
+      currentBooks = books;
+      showingBooks = true;
+      selectedBook = null;
+      loading = false;
     });
+  }
 
-    final numbers =
-        await BibleService.getChapterNumbers(book);
-
-    if (!mounted) {
-      return;
-    }
-
+  Future<void> _showApocryphaBooks() async {
+    setState(() => loading = true);
+    final books = await BibleService.loadApocryphaBooks();
     setState(() {
-      chapterNumbers = numbers;
-      loadingChapters = false;
+      currentBooks = books;
+      showingBooks = true;
+      selectedBook = null;
+      loading = false;
     });
   }
 
@@ -155,134 +154,109 @@ class _BookChapterChooserState
   Widget build(BuildContext context) {
     return Column(
       children: [
-
         const SizedBox(height: 12),
-
+        // Drag handle
         Container(
           width: 40,
           height: 4,
           decoration: BoxDecoration(
             color: Colors.grey[400],
-            borderRadius:
-                BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
-
         const SizedBox(height: 8),
 
+        // Title + KJV / Apocrypha buttons
         Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-
-              Text(
-                selectedBook == null
-                    ? 'Select Book'
-                    : selectedBook!,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  selectedBook ?? (showingBooks ? 'Select Book' : widget.currentBook),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-
-              const Spacer(),
-
-              if (selectedBook != null)
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedBook = null;
-                      chapterNumbers = [];
-                    });
-                  },
-                  child: const Text(
-                    'All Books',
-                  ),
+              // KJV button
+              TextButton(
+                onPressed: _showKjvBooks,
+                style: TextButton.styleFrom(
+                  foregroundColor: showingBooks && currentBooks.isNotEmpty && 
+                      currentBooks.first == 'Genesis'
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
                 ),
+                child: const Text('KJV'),
+              ),
+              // Apocrypha button
+              TextButton(
+                onPressed: _showApocryphaBooks,
+                style: TextButton.styleFrom(
+                  foregroundColor: showingBooks && currentBooks.isNotEmpty && 
+                      currentBooks.first != 'Genesis'
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                child: const Text('Apocrypha'),
+              ),
             ],
           ),
         ),
-
         const Divider(height: 1),
 
+        // Content
         Expanded(
-          child: selectedBook == null
-              ? _buildBookGrid()
-              : _buildChapterGrid(),
+          child: loading
+              ? const Center(child: CircularProgressIndicator())
+              : showingBooks
+                  ? _buildBookGrid()
+                  : _buildChapterGrid(),
         ),
       ],
     );
   }
 
+  // Book grid (same style as before)
   Widget _buildBookGrid() {
     return GridView.builder(
       controller: widget.scrollController,
-
       padding: const EdgeInsets.all(12),
-
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         childAspectRatio: 1.55,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-
-      itemCount: widget.allBooks.length,
-
+      itemCount: currentBooks.length,
       itemBuilder: (context, index) {
-        final book =
-            widget.allBooks[index];
-
-        final isSelected =
-            book == widget.currentBook;
-
-        final abbrev =
-            abbreviations[book] ?? book;
+        final book = currentBooks[index];
+        final isSelected = book == widget.currentBook;
+        final abbrev = abbreviations[book] ?? book;
 
         return Material(
           color: isSelected
-              ? Theme.of(context)
-                  .colorScheme
-                  .primaryContainer
-              : Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest,
-
-          borderRadius:
-              BorderRadius.circular(10),
-
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
           child: InkWell(
-            borderRadius:
-                BorderRadius.circular(10),
-
+            borderRadius: BorderRadius.circular(10),
             onTap: () {
               setState(() {
                 selectedBook = book;
+                showingBooks = false;
               });
-
-              _loadChapterNumbers(book);
+              _loadMaxChapter(book);
             },
-
             child: Center(
               child: Text(
                 abbrev,
-
                 style: TextStyle(
-                  fontWeight: isSelected
-                      ? FontWeight.bold
-                      : FontWeight.w500,
-
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
-                      ? Theme.of(context)
-                          .colorScheme
-                          .onPrimaryContainer
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
                       : null,
                 ),
-
                 textAlign: TextAlign.center,
               ),
             ),
@@ -292,94 +266,40 @@ class _BookChapterChooserState
     );
   }
 
+  // Chapter grid (same style as before)
   Widget _buildChapterGrid() {
-    if (loadingChapters) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (chapterNumbers.isEmpty) {
-      return const Center(
-        child: Text(
-          'No chapters found.',
-        ),
-      );
-    }
-
     return GridView.builder(
       controller: widget.scrollController,
-
       padding: const EdgeInsets.all(16),
-
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         childAspectRatio: 1.15,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-
-      // IMPORTANT:
-      // Use the actual number of chapters in the JSON.
-      itemCount: chapterNumbers.length,
-
+      itemCount: maxChapter,
       itemBuilder: (context, index) {
-
-        // IMPORTANT:
-        // Do NOT use index + 1.
-        //
-        // AdditionsToEsther will therefore produce:
-        //
-        // 10 11 12 13 14 15 16
-        //
-        // instead of:
-        //
-        // 1 2 3 4 5 6 ... 16
-        //
-        final chapter =
-            chapterNumbers[index];
-
-        final isSelected =
-            selectedBook == widget.currentBook &&
+        final chapter = index + 1;
+        final isSelected = selectedBook == widget.currentBook &&
             chapter == widget.currentChapter;
 
         return Material(
           color: isSelected
-              ? Theme.of(context)
-                  .colorScheme
-                  .primary
-              : Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest,
-
-          borderRadius:
-              BorderRadius.circular(10),
-
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
           child: InkWell(
-            borderRadius:
-                BorderRadius.circular(10),
-
+            borderRadius: BorderRadius.circular(10),
             onTap: () {
-              widget.onChapterSelected(
-                selectedBook!,
-                chapter,
-              );
+              widget.onChapterSelected(selectedBook!, chapter);
             },
-
             child: Center(
               child: Text(
                 '$chapter',
-
                 style: TextStyle(
                   fontSize: 16,
-
-                  fontWeight:
-                      FontWeight.bold,
-
-                  color: isSelected
-                      ? Colors.white
-                      : null,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : null,
                 ),
               ),
             ),

@@ -129,4 +129,13 @@ class TagService {
     }
     await saveAll(tags);
   }
+  
+  /// Deletes the tags file
+  static Future<void> eraseAllTags() async {
+    final path = await _getPath();
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
 }

@@ -2,12 +2,107 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/commentary_service.dart';
+import '../services/tag_service.dart';
 import '../services/theme_service.dart';
 import 'tag_manager_screen.dart';
 import 'search_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _eraseAllData(BuildContext context) async {
+    // First confirmation
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Erase All Data?'),
+        content: const Text(
+          'This will permanently delete:\n\n'
+          '• All commentaries\n'
+          '• All highlights\n'
+          '• All hashtags\n'
+          '• All tags\n\n'
+          'This cannot be undone.\n\n'
+          'Are you sure you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Erase Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Second (stronger) confirmation
+    final reallySure = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Final Confirmation'),
+        content: const Text(
+          'This is your last chance.\n\n'
+          'All your notes, highlights, hashtags and tags will be permanently deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Delete Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (reallySure != true) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Erasing data...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      await CommentaryService.eraseAllCommentaries();
+      await TagService.eraseAllTags();
+
+      if (context.mounted) {
+        Navigator.pop(context); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All data has been erased'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to erase data: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,6 +294,19 @@ class SettingsScreen extends StatelessWidget {
                 }
               }
             },
+          ),
+
+          // ===== ERASE DATA =====
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text(
+              'Erase All Data',
+              style: TextStyle(color: Colors.red),
+            ),
+            subtitle: const Text(
+              'Permanently delete all commentaries, tags, highlights & hashtags',
+            ),
+            onTap: () => _eraseAllData(context),
           ),
 
           const Divider(),
