@@ -10,7 +10,7 @@ class ThemeService extends ChangeNotifier {
 
   ThemeMode _mode = ThemeMode.system;
   double _fontSize = 16.0;
-  String _fontFamily = 'Inter';
+  String _fontFamily = 'System'; // System is now the real default
   bool _keepScreenOn = false;
 
   ThemeMode get mode => _mode;
@@ -20,16 +20,19 @@ class ThemeService extends ChangeNotifier {
 
   static const List<double> fontSizes = [14, 16, 18, 20, 22, 24, 28];
 
+  // Only System + Inter for now. Add more names later when you bundle the files.
   static const List<String> fontFamilies = [
     'System',
+    'Black Ops One',
+    'Dancing Script',
     'Inter',
-    'Roboto',
-    'Open Sans',
     'Lato',
-    'Source Sans 3',
-    'Merriweather',
     'Lora',
+    'Merriweather',
     'Noto Serif',
+    'Open Sans',
+    'Roboto',
+    'Source Sans 3',
   ];
 
   Future<void> load() async {
@@ -45,8 +48,8 @@ class ThemeService extends ChangeNotifier {
     _fontSize = prefs.getDouble(_fontSizeKey) ?? 16.0;
     if (!fontSizes.contains(_fontSize)) _fontSize = 16.0;
 
-    _fontFamily = prefs.getString(_fontFamilyKey) ?? 'Inter';
-    if (!fontFamilies.contains(_fontFamily)) _fontFamily = 'Inter';
+    _fontFamily = prefs.getString(_fontFamilyKey) ?? 'System';
+    if (!fontFamilies.contains(_fontFamily)) _fontFamily = 'System';
 
     _keepScreenOn = prefs.getBool(_keepScreenOnKey) ?? false;
     await _applyKeepScreenOn(_keepScreenOn);

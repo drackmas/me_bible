@@ -13,15 +13,14 @@ dependencies:
   path_provider: ^2.1.5
   shared_preferences: ^2.3.3
   provider: ^6.1.2
-  google_fonts: ^8.2.1
-  file_picker: ^12.0.0-beta.7      # ← beta that supports win32 6
+  file_picker: ^12.0.0-beta.7
   wakelock_plus: ^1.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.14.3   # ← add this
+  flutter_launcher_icons: ^0.14.3
 
 flutter_launcher_icons:
   android: true
@@ -31,11 +30,62 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icon.png"
     icon_size: 256
-  # optional adaptive icon for Android
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon.png"
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter_18pt-Regular.ttf
+        - asset: assets/fonts/Inter/Inter_18pt-Bold.ttf
+          weight: 700
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto/Roboto-Bold.ttf
+          weight: 700
+    - family: Open Sans
+      fonts:
+        - asset: assets/fonts/Open_Sans/OpenSans-Regular.ttf
+        - asset: assets/fonts/Open_Sans/OpenSans-Bold.ttf
+          weight: 700
+    - family: Lato
+      fonts:
+        - asset: assets/fonts/Lato/Lato-Regular.ttf
+        - asset: assets/fonts/Lato/Lato-Bold.ttf
+          weight: 700
+    - family: Source Sans 3
+      fonts:
+        - asset: assets/fonts/Source_Sans_3/SourceSans3-Regular.ttf
+        - asset: assets/fonts/Source_Sans_3/SourceSans3-Bold.ttf
+          weight: 700
+    - family: Merriweather
+      fonts:
+        - asset: assets/fonts/Merriweather/Merriweather_24pt-Regular.ttf
+        - asset: assets/fonts/Merriweather/Merriweather_24pt-Bold.ttf
+          weight: 700
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora/Lora-Regular.ttf
+        - asset: assets/fonts/Lora/Lora-Bold.ttf
+          weight: 700
+    - family: Noto Serif
+      fonts:
+        - asset: assets/fonts/Noto_Serif/NotoSerif-Regular.ttf
+        - asset: assets/fonts/Noto_Serif/NotoSerif-Bold.ttf
+          weight: 700
+    - family: Black Ops One
+      fonts:
+        - asset: assets/fonts/Black_Ops_One/BlackOpsOne-Regular.ttf
+          weight: 700
+    - family: Dancing Script
+      fonts:
+        - asset: assets/fonts/Dancing_Script/DancingScript-Regular.ttf
+        - asset: assets/fonts/Dancing_Script/DancingScript-Bold.ttf
+          weight: 700

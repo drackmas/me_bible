@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'screens/reader_screen.dart';
 import 'services/theme_service.dart';
@@ -25,41 +24,14 @@ class BibleApp extends StatelessWidget {
         ? ThemeData.dark().textTheme
         : ThemeData.light().textTheme;
 
-    TextTheme themed;
+    // Apply the selected font family (null = System / platform default)
+    final String? fontFamily = family == 'System' ? null : family;
 
-    if (family == 'System') {
-      // Use the platform's default font
-      themed = base;
-    } else {
-      switch (family) {
-        case 'Roboto':
-          themed = GoogleFonts.robotoTextTheme(base);
-          break;
-        case 'Open Sans':
-          themed = GoogleFonts.openSansTextTheme(base);
-          break;
-        case 'Lato':
-          themed = GoogleFonts.latoTextTheme(base);
-          break;
-        case 'Source Sans 3':
-          themed = GoogleFonts.sourceSans3TextTheme(base);
-          break;
-        case 'Merriweather':
-          themed = GoogleFonts.merriweatherTextTheme(base);
-          break;
-        case 'Lora':
-          themed = GoogleFonts.loraTextTheme(base);
-          break;
-        case 'Noto Serif':
-          themed = GoogleFonts.notoSerifTextTheme(base);
-          break;
-        case 'Inter':
-        default:
-          themed = GoogleFonts.interTextTheme(base);
-      }
-    }
+    final themed = base.apply(
+      fontFamily: fontFamily,
+    );
 
-    // Apply the chosen base font size
+    // Apply the user's chosen base font size
     return themed.copyWith(
       bodyLarge: themed.bodyLarge?.copyWith(fontSize: fontSize + 2),
       bodyMedium: themed.bodyMedium?.copyWith(fontSize: fontSize),
