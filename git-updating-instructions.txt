@@ -1,0 +1,67 @@
+ok so say we make more code changes like we normally do. how do I do updates for git? Assume I'm a newbie which I am. The main thing I know is I probably do git add .  first?
+
+Here’s a simple, beginner-friendly workflow you can follow every time you make changes.Normal update process (do this every time)bash
+
+# 1. See what files you changed
+git status
+
+# 2. Add all the changed files
+git add .
+
+# 3. Save the changes with a message
+git commit -m "Describe what you changed"
+
+# 4. Upload to GitHub
+git push origin main
+
+ExampleLet’s say you fixed the tag matching and updated a few files:bash
+
+git status
+# (shows the files you changed)
+
+git add .
+
+git commit -m "Fix tag matching to be case-sensitive and whole-word"
+
+git push origin main
+
+Quick tips for beginnersCommand
+What it does
+When to use it
+git status
+Shows what files are changed
+Always check first
+git add .
+Stages all changed files
+Most of the time
+git commit -m "..."
+Saves a snapshot with a message
+After git add
+git push origin main
+Uploads your commits to GitHub
+After committing
+
+Optional but usefulIf you only want to add specific files instead of everything:bash
+
+git add lib/services/tag_service.dart
+git add lib/screens/tag_manager_screen.dart
+
+
+if we run into issues with notification
+git pull origin main --no-rebase
+git push
+
+but this is if we see something like:
+
+[dracmas@cachyoswork me_bible]$ git push
+To https://github.com/drackmas/me_bible.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/drackmas/me_bible.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[dracmas@cachyoswork me_bible]$ git pull origin main --no-rebase
+
+

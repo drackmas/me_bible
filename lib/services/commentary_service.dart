@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -51,57 +52,53 @@ class CommentaryService {
   }
 
   // ============================================================
-  // EXPORT (Commentaries + Highlights + Hashtags + Tags)
+  // EXPORT
   // ============================================================
   static Future<String?> exportAll() async {
-    // 1. Collect all commentaries (includes highlights + hashtags)
     final books = await _getAllBooksWithCommentaries();
     final Map<String, dynamic> commentariesMap = {};
 
     for (final book in books) {
       final commentaries = await load(book);
       if (commentaries.isNotEmpty) {
-        commentariesMap[book] = commentaries.map((c) => c.toJson()).toList();
+        commentariesMap[book] =
+            commentaries.map((c) => c.toJson()).toList();
       }
     }
 
-    // 2. Collect tags (only name + phrase, NO occurrences)
     final tags = await TagService.loadAll();
 
     final Map<String, dynamic> exportData = {
       'commentaries': commentariesMap,
-      'tags': tags.map((t) => t.toJson()).toList(), // ← clean version
+      'tags': tags.map((t) => t.toJson()).toList(),
       'exportedAt': DateTime.now().toIso8601String(),
       'version': 2,
     };
 
-    // Let user choose where to save
-    String? outputPath = await FilePicker.platform.saveFile(
+    final jsonString =
+        const JsonEncoder.withIndent('  ').convert(exportData);
+    final bytes = utf8.encode(jsonString);
+
+    // file_picker returns String? for saveFile()
+    final String? result = await FilePicker.saveFile(
       dialogTitle: 'Export Commentaries + Tags',
       fileName: 'bible_backup.json',
       type: FileType.custom,
       allowedExtensions: ['json'],
+      bytes: Uint8List.fromList(bytes),
     );
 
-    if (outputPath == null) return null; // user cancelled
+    if (result == null) return null;
 
-    if (!outputPath.toLowerCase().endsWith('.json')) {
-      outputPath += '.json';
-    }
-
-    final file = File(outputPath);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(exportData),
-    );
-
-    return outputPath;
+    return result;
   }
 
   // ============================================================
-  // IMPORT (Commentaries + Highlights + Hashtags + Tags)
+  // IMPORT
   // ============================================================
   static Future<Map<String, int>> importAll() async {
-    final result = await FilePicker.platform.pickFiles(
+    // NEW API (file_picker 11+)
+    final result = await FilePicker.pickFiles(
       dialogTitle: 'Import Commentaries + Tags',
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -120,7 +117,6 @@ class CommentaryService {
     int commentaryCount = 0;
     int tagCount = 0;
 
-    // ----- Import Commentaries (with highlights + hashtags) -----
     if (data['commentaries'] != null) {
       final Map<String, dynamic> commentariesMap =
           Map<String, dynamic>.from(data['commentaries']);
@@ -134,15 +130,11 @@ class CommentaryService {
       }
     }
 
-    // ----- Import Tags (without occurrences) -----
     if (data['tags'] != null) {
       final List<dynamic> tagsList = data['tags'] as List<dynamic>;
       final tags = tagsList.map((e) => Tag.fromJson(e)).toList();
       await TagService.saveAll(tags);
-
-      // Rebuild the occurrences by scanning the whole Bible
       await TagService.rebuildAllMissingOccurrences();
-
       tagCount = tags.length;
     }
 
@@ -152,7 +144,6 @@ class CommentaryService {
     };
   }
 
-  // Helper: find which books already have commentary files
   static Future<List<String>> _getAllBooksWithCommentaries() async {
     final dir = await getApplicationDocumentsDirectory();
     final files = dir.listSync();

@@ -38,7 +38,7 @@ class _CommentarySheetState extends State<CommentarySheet> {
   final TextEditingController hashtagController = TextEditingController();
 
   String selectedHighlightColor = 'yellow';
-  String selectedHashtagColor = 'green'; // default green
+  String selectedHashtagColor = 'green';
 
   final highlightColors = ['yellow', 'green', 'blue', 'pink', 'orange', 'purple'];
 
@@ -76,7 +76,6 @@ class _CommentarySheetState extends State<CommentarySheet> {
     String text = hashtagController.text.trim();
     if (text.isEmpty) return;
 
-    // Remove leading # if user typed it
     if (text.startsWith('#')) {
       text = text.substring(1);
     }
@@ -115,8 +114,27 @@ class _CommentarySheetState extends State<CommentarySheet> {
     if (mounted) Navigator.pop(context);
   }
 
+  Color _chipColor(String name, {required bool isDark}) {
+    switch (name) {
+      case 'green':
+        return isDark ? Colors.green.shade700 : Colors.green.shade200;
+      case 'blue':
+        return isDark ? Colors.blue.shade700 : Colors.blue.shade200;
+      case 'pink':
+        return isDark ? Colors.pink.shade700 : Colors.pink.shade200;
+      case 'orange':
+        return isDark ? Colors.orange.shade700 : Colors.orange.shade200;
+      case 'purple':
+        return isDark ? Colors.purple.shade700 : Colors.purple.shade200;
+      default:
+        return isDark ? Colors.yellow.shade800 : Colors.yellow.shade300;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -168,7 +186,6 @@ class _CommentarySheetState extends State<CommentarySheet> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Color toggle
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(value: 'green', label: Text('Green')),
@@ -191,10 +208,17 @@ class _CommentarySheetState extends State<CommentarySheet> {
                 spacing: 6,
                 children: hashtags.map((h) {
                   final isRed = h.color == 'red';
+                  final bg = isRed
+                      ? (isDark
+                          ? Colors.red.shade900.withOpacity(0.45)
+                          : Colors.red.shade100)
+                      : (isDark
+                          ? Colors.green.shade900.withOpacity(0.45)
+                          : Colors.green.shade100);
+
                   return Chip(
                     label: Text('#${h.text}'),
-                    backgroundColor:
-                        isRed ? Colors.red.shade100 : Colors.green.shade100,
+                    backgroundColor: bg,
                     deleteIcon: const Icon(Icons.close, size: 16),
                     onDeleted: () {
                       setState(() => hashtags.remove(h));
@@ -207,7 +231,8 @@ class _CommentarySheetState extends State<CommentarySheet> {
             const SizedBox(height: 20),
 
             // ========== HIGHLIGHTS ==========
-            const Text('Highlights', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Highlights',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -244,7 +269,7 @@ class _CommentarySheetState extends State<CommentarySheet> {
                 children: highlights.map((h) {
                   return Chip(
                     label: Text(h.text),
-                    backgroundColor: _chipColor(h.color),
+                    backgroundColor: _chipColor(h.color, isDark: isDark),
                     deleteIcon: const Icon(Icons.close, size: 16),
                     onDeleted: () {
                       setState(() => highlights.remove(h));
@@ -257,7 +282,8 @@ class _CommentarySheetState extends State<CommentarySheet> {
             const SizedBox(height: 20),
 
             // ========== COMMENTARY ==========
-            const Text('Commentary', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Commentary',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: controller,
@@ -282,7 +308,8 @@ class _CommentarySheetState extends State<CommentarySheet> {
                       widget.onSaved();
                       if (mounted) Navigator.pop(context);
                     },
-                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    child: const Text('Delete',
+                        style: TextStyle(color: Colors.red)),
                   ),
                 const Spacer(),
                 TextButton(
@@ -301,22 +328,5 @@ class _CommentarySheetState extends State<CommentarySheet> {
         ),
       ),
     );
-  }
-
-  Color _chipColor(String name) {
-    switch (name) {
-      case 'green':
-        return Colors.green.shade200;
-      case 'blue':
-        return Colors.blue.shade200;
-      case 'pink':
-        return Colors.pink.shade200;
-      case 'orange':
-        return Colors.orange.shade200;
-      case 'purple':
-        return Colors.purple.shade200;
-      default:
-        return Colors.yellow.shade300;
-    }
   }
 }

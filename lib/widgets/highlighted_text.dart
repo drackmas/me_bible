@@ -13,21 +13,21 @@ class HighlightedText extends StatelessWidget {
     this.style,
   });
 
-  Color _colorFromName(String name) {
+  Color _colorFromName(String name, {required bool isDark}) {
     switch (name.toLowerCase()) {
       case 'green':
-        return Colors.green.shade200;
+        return isDark ? Colors.green.shade700 : Colors.green.shade200;
       case 'blue':
-        return Colors.blue.shade200;
+        return isDark ? Colors.blue.shade700 : Colors.blue.shade200;
       case 'pink':
-        return Colors.pink.shade200;
+        return isDark ? Colors.pink.shade700 : Colors.pink.shade200;
       case 'orange':
-        return Colors.orange.shade200;
+        return isDark ? Colors.orange.shade700 : Colors.orange.shade200;
       case 'purple':
-        return Colors.purple.shade200;
+        return isDark ? Colors.purple.shade700 : Colors.purple.shade200;
       case 'yellow':
       default:
-        return Colors.yellow.shade300;
+        return isDark ? Colors.yellow.shade800 : Colors.yellow.shade300;
     }
   }
 
@@ -37,12 +37,9 @@ class HighlightedText extends StatelessWidget {
       return Text(text, style: style);
     }
 
-    // Simple approach: highlight every occurrence of each phrase
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final spans = <TextSpan>[];
-    String remaining = text;
     int currentIndex = 0;
-
-    // We will process the text sequentially
     final lowerText = text.toLowerCase();
 
     while (currentIndex < text.length) {
@@ -63,12 +60,10 @@ class HighlightedText extends StatelessWidget {
       }
 
       if (nearestStart == -1) {
-        // No more highlights
         spans.add(TextSpan(text: text.substring(currentIndex), style: style));
         break;
       }
 
-      // Add normal text before the highlight
       if (nearestStart > currentIndex) {
         spans.add(TextSpan(
           text: text.substring(currentIndex, nearestStart),
@@ -76,11 +71,11 @@ class HighlightedText extends StatelessWidget {
         ));
       }
 
-      // Add the highlighted part
       spans.add(TextSpan(
         text: text.substring(nearestStart, nearestStart + nearestLength),
         style: (style ?? const TextStyle()).copyWith(
-          backgroundColor: _colorFromName(nearestHighlight!.color),
+          backgroundColor:
+              _colorFromName(nearestHighlight!.color, isDark: isDark),
           fontWeight: FontWeight.w600,
         ),
       ));

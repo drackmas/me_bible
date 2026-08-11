@@ -33,6 +33,8 @@ class VerseTile extends StatelessWidget {
         commentaryHighlights.isNotEmpty ||
         hashtags.isNotEmpty;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: hasExtra ? 2 : 0,
@@ -47,7 +49,7 @@ class VerseTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Verse number + text (with highlights)
+              // 1. Verse number + text
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -69,7 +71,7 @@ class VerseTile extends StatelessWidget {
                 ],
               ),
 
-              // 2. Hashtags (red / green)
+              // 2. Hashtags
               if (hashtags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -77,18 +79,35 @@ class VerseTile extends StatelessWidget {
                   runSpacing: 6,
                   children: hashtags.map((h) {
                     final isRed = h.color.toLowerCase() == 'red';
+
+                    final bg = isRed
+                        ? (isDark
+                            ? Colors.red.shade900.withOpacity(0.45)
+                            : Colors.red.shade100)
+                        : (isDark
+                            ? Colors.green.shade900.withOpacity(0.45)
+                            : Colors.green.shade100);
+
+                    final fg = isRed
+                        ? (isDark ? Colors.red.shade200 : Colors.red.shade800)
+                        : (isDark
+                            ? Colors.green.shade200
+                            : Colors.green.shade800);
+
                     return Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isRed
-                            ? Colors.red.shade100
-                            : Colors.green.shade100,
+                        color: bg,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isRed
-                              ? Colors.red.shade400
-                              : Colors.green.shade400,
+                              ? (isDark
+                                  ? Colors.red.shade400
+                                  : Colors.red.shade400)
+                              : (isDark
+                                  ? Colors.green.shade400
+                                  : Colors.green.shade400),
                         ),
                       ),
                       child: Text(
@@ -96,9 +115,7 @@ class VerseTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isRed
-                              ? Colors.red.shade800
-                              : Colors.green.shade800,
+                          color: fg,
                         ),
                       ),
                     );
@@ -106,7 +123,7 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // 3. Tags (phrase tags)
+              // 3. Tags
               if (tags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -137,7 +154,7 @@ class VerseTile extends StatelessWidget {
                   commentaryPreview!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

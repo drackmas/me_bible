@@ -4,21 +4,23 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  path_provider: ^2.1.4
-  shared_preferences: ^2.3.2
-  file_picker: ^8.1.2          # for export
+
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.3
   provider: ^6.1.2
-  google_fonts: ^6.2.1
+  google_fonts: ^8.2.1
+  file_picker: ^12.0.0-beta.7      # ← beta that supports win32 6
+  wakelock_plus: ^1.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
