@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'app_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/tag.dart';
 import 'bible_service.dart';
 
 class TagService {
   static Future<String> _getPath() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/bible_tags.json';
+    return AppStorage.pathFor('bible_tags.json');
   }
 
   static Future<List<Tag>> loadAll() async {

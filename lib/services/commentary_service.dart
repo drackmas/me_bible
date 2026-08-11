@@ -6,13 +6,13 @@ import 'package:file_picker/file_picker.dart';
 import '../models/commentary.dart';
 import '../models/tag.dart';
 import 'tag_service.dart';
+import 'app_storage.dart';
+import 'package:path/path.dart' as p;   // only needed in commentary_service
 
 class CommentaryService {
   static Future<String> _getPath(String book) async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/$book-Commentary.json';
+    return AppStorage.pathFor('$book-Commentary.json');
   }
-
   static Future<List<Commentary>> load(String book) async {
     try {
       final path = await _getPath(book);
@@ -145,14 +145,13 @@ class CommentaryService {
   }
 
   static Future<List<String>> _getAllBooksWithCommentaries() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await AppStorage.dataDir;
     final files = dir.listSync();
 
     final books = <String>[];
     for (final file in files) {
       if (file is File && file.path.endsWith('-Commentary.json')) {
-        final name =
-            file.uri.pathSegments.last.replaceAll('-Commentary.json', '');
+        final name = p.basename(file.path).replaceAll('-Commentary.json', '');
         books.add(name);
       }
     }
