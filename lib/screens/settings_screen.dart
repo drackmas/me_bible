@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/commentary_service.dart';
 import '../services/tag_service.dart';
+import '../services/bookmark_service.dart';
 import '../services/theme_service.dart';
 import 'tag_manager_screen.dart';
+import 'bookmark_manager_screen.dart';
 import 'search_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -21,7 +23,8 @@ class SettingsScreen extends StatelessWidget {
           '• All commentaries\n'
           '• All highlights\n'
           '• All hashtags\n'
-          '• All tags\n\n'
+          '• All tags\n'
+          '• All bookmarks\n\n'
           'This cannot be undone.\n\n'
           'Are you sure you want to continue?',
         ),
@@ -48,7 +51,7 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Final Confirmation'),
         content: const Text(
           'This is your last chance.\n\n'
-          'All your notes, highlights, hashtags and tags will be permanently deleted.',
+          'All your notes, highlights, hashtags, tags and bookmarks will be permanently deleted.',
         ),
         actions: [
           TextButton(
@@ -84,6 +87,7 @@ class SettingsScreen extends StatelessWidget {
     try {
       await CommentaryService.eraseAllCommentaries();
       await TagService.eraseAllTags();
+      await BookmarkService.eraseAll();
 
       if (context.mounted) {
         Navigator.pop(context); // close loading
@@ -141,6 +145,20 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const TagManagerScreen()),
+              );
+            },
+          ),
+
+          // ===== BOOKMARKS =====
+          ListTile(
+            leading: const Icon(Icons.bookmark_border),
+            title: const Text('Manage Bookmarks'),
+            subtitle: const Text('Create, rename or delete bookmark collections'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BookmarkManagerScreen()),
               );
             },
           ),
@@ -238,7 +256,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.upload_file),
             title: const Text('Export All Data'),
-            subtitle: const Text('Commentaries + Highlights + Tags'),
+            subtitle: const Text('Commentaries + Highlights + Tags + Bookmarks'),
             onTap: () async {
               try {
                 final path = await CommentaryService.exportAll();
@@ -266,7 +284,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.download),
             title: const Text('Import Data'),
-            subtitle: const Text('Restore Commentaries + Highlights + Tags'),
+            subtitle: const Text('Restore Commentaries + Highlights + Tags + Bookmarks'),
             onTap: () async {
               try {
                 final result = await CommentaryService.importAll();
@@ -274,13 +292,14 @@ class SettingsScreen extends StatelessWidget {
                 if (context.mounted) {
                   final c = result['commentaries'] ?? 0;
                   final t = result['tags'] ?? 0;
+                  final b = result['bookmarks'] ?? 0;
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        (c == 0 && t == 0)
+                        (c == 0 && t == 0 && b == 0)
                             ? 'Import cancelled or no data found'
-                            : 'Imported $c commentaries and $t tags',
+                            : 'Imported $c commentaries, $t tags and $b bookmarks',
                       ),
                       duration: const Duration(seconds: 4),
                     ),
@@ -304,7 +323,7 @@ class SettingsScreen extends StatelessWidget {
               style: TextStyle(color: Colors.red),
             ),
             subtitle: const Text(
-              'Permanently delete all commentaries, tags, highlights & hashtags',
+              'Permanently delete all commentaries, tags, highlights, hashtags & bookmarks',
             ),
             onTap: () => _eraseAllData(context),
           ),

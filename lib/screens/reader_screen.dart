@@ -10,6 +10,9 @@ import '../widgets/commentary_sheet.dart';
 import '../widgets/book_chapter_chooser.dart';
 import 'settings_screen.dart';
 import 'tag_verses_screen.dart';
+import '../models/bookmark.dart';
+import '../services/bookmark_service.dart';
+import 'bookmark_verses_screen.dart';
 
 class ReaderScreen extends StatefulWidget {
   final String initialBook;
@@ -34,6 +37,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   List<Verse> verses = [];
   List<Commentary> commentaries = [];
   List<Tag> allTags = [];
+  List<Bookmark> allBookmarks = [];
   bool loading = true;
 
   @override
@@ -48,7 +52,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     allBooks = await BibleService.loadAllBooks(); // clearer name
     await _loadBook();
   }
-
+  
   Future<void> _loadBook() async {
     setState(() => loading = true);
 
@@ -56,13 +60,127 @@ class _ReaderScreenState extends State<ReaderScreen> {
     maxChapter = await BibleService.getMaxChapter(currentBook);
     commentaries = await CommentaryService.load(currentBook);
     allTags = await TagService.loadAll();
+    allBookmarks = await BookmarkService.loadAll();
 
-    // Keep the requested chapter if it is valid
     if (currentChapter > maxChapter) {
       currentChapter = 1;
     }
 
     setState(() => loading = false);
+  }
+
+  List<Bookmark> getBookmarksForVerse(int verseNumber) {
+    final target = BookmarkVerse(
+      book: currentBook,
+      chapter: currentChapter,
+      verse: verseNumber,
+    );
+    return allBookmarks.where((b) => b.verses.contains(target)).toList();
+  } 
+
+  Future<void> _showBookmarkSheet(Verse verse) async {
+    final current = BookmarkVerse(
+      book: currentBook,
+      chapter: currentChapter,
+      verse: verse.verse,
+    );
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const ListTile(
+                      title: Text(
+                        'Add to Bookmark',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    if (allBookmarks.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text('No bookmarks yet. Create one below.'),
+                      ),
+                    ...allBookmarks.map((bm) {
+                      final already = bm.verses.contains(current);
+                      return CheckboxListTile(
+                        title: Text(bm.name),
+                        subtitle: Text('${bm.verses.length} verse(s)'),
+                        value: already,
+                        onChanged: (checked) async {
+                          if (checked == true) {
+                            await BookmarkService.addVerse(bm.id, current);
+                          } else {
+                            await BookmarkService.removeVerse(bm.id, current);
+                          }
+                          // refresh local list
+                          allBookmarks = await BookmarkService.loadAll();
+                          setModalState(() {});
+                          setState(() {}); // update the verse tiles
+                        },
+                      );
+                    }),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.add),
+                      title: const Text('Create new bookmark…'),
+                      onTap: () async {
+                        final name = await _askBookmarkName();
+                        if (name != null && name.isNotEmpty) {
+                          final newBm = await BookmarkService.create(name);
+                          await BookmarkService.addVerse(newBm.id, current);
+                          allBookmarks = await BookmarkService.loadAll();
+                          if (context.mounted) Navigator.pop(context);
+                          setState(() {});
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<String?> _askBookmarkName() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('New Bookmark'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Name (e.g. Love)',
+              border: OutlineInputBorder(),
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   List<Verse> get chapterVerses =>
@@ -174,8 +292,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               itemBuilder: (context, index) {
                 final verse = chapterVerses[index];
                 final commentary = getCommentary(verse.verse);
-                final verseTags = getTagsForVerse(verse.verse);
-
+                final verseTags = getTagsForVerse(verse.verse);                
                 return VerseTile(
                   verse: verse,
                   hasCommentary: commentary != null,
@@ -183,6 +300,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   commentaryHighlights: commentary?.highlights ?? [],
                   hashtags: commentary?.hashtags ?? [],
                   tags: verseTags,
+                  bookmarks: getBookmarksForVerse(verse.verse),
                   onTap: () => _openCommentary(verse),
                   onTagTap: (tag) {
                     Navigator.push(
@@ -192,7 +310,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       ),
                     );
                   },
-                );
+                  onBookmarkTap: (bm) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookmarkVersesScreen(bookmark: bm),
+                      ),
+                    );
+                  },
+                  onLongPress: () => _showBookmarkSheet(verse),
+                );                   
               },
             ),
       bottomNavigationBar: SafeArea(

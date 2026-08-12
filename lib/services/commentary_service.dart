@@ -8,6 +8,8 @@ import '../models/tag.dart';
 import 'tag_service.dart';
 import 'app_storage.dart';
 import 'package:path/path.dart' as p;   // only needed in commentary_service
+import '../models/bookmark.dart';
+import 'bookmark_service.dart';
 
 class CommentaryService {
   static Future<String> _getPath(String book) async {
@@ -67,21 +69,22 @@ class CommentaryService {
     }
 
     final tags = await TagService.loadAll();
+    final bookmarks = await BookmarkService.loadAll();
 
     final Map<String, dynamic> exportData = {
       'commentaries': commentariesMap,
       'tags': tags.map((t) => t.toJson()).toList(),
+      'bookmarks': bookmarks.map((b) => b.toJson()).toList(),
       'exportedAt': DateTime.now().toIso8601String(),
-      'version': 2,
+      'version': 3,
     };
 
     final jsonString =
         const JsonEncoder.withIndent('  ').convert(exportData);
     final bytes = utf8.encode(jsonString);
 
-    // file_picker returns String? for saveFile()
     final String? result = await FilePicker.saveFile(
-      dialogTitle: 'Export Commentaries + Tags',
+      dialogTitle: 'Export Commentaries + Tags + Bookmarks',
       fileName: 'bible_backup.json',
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -97,25 +100,25 @@ class CommentaryService {
   // IMPORT
   // ============================================================
   static Future<Map<String, int>> importAll() async {
-    // NEW API (file_picker 11+)
     final result = await FilePicker.pickFiles(
-      dialogTitle: 'Import Commentaries + Tags',
+      dialogTitle: 'Import Commentaries + Tags + Bookmarks',
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
 
     if (result == null || result.files.isEmpty) {
-      return {'commentaries': 0, 'tags': 0};
+      return {'commentaries': 0, 'tags': 0, 'bookmarks': 0};
     }
 
     final path = result.files.single.path;
-    if (path == null) return {'commentaries': 0, 'tags': 0};
+    if (path == null) return {'commentaries': 0, 'tags': 0, 'bookmarks': 0};
 
     final content = await File(path).readAsString();
     final Map<String, dynamic> data = json.decode(content);
 
     int commentaryCount = 0;
     int tagCount = 0;
+    int bookmarkCount = 0;
 
     if (data['commentaries'] != null) {
       final Map<String, dynamic> commentariesMap =
@@ -138,9 +141,19 @@ class CommentaryService {
       tagCount = tags.length;
     }
 
+    if (data['bookmarks'] != null) {
+      final List<dynamic> bmList = data['bookmarks'] as List<dynamic>;
+      final bookmarks = bmList
+          .map((e) => Bookmark.fromJson(e as Map<String, dynamic>))
+          .toList();
+      await BookmarkService.saveAll(bookmarks);
+      bookmarkCount = bookmarks.length;
+    }
+
     return {
       'commentaries': commentaryCount,
       'tags': tagCount,
+      'bookmarks': bookmarkCount,
     };
   }
   

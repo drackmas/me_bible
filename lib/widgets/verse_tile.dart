@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/verse.dart';
 import '../models/tag.dart';
 import '../models/commentary.dart';
+import '../models/bookmark.dart';
 import 'highlighted_text.dart';
 
 class VerseTile extends StatelessWidget {
@@ -11,8 +12,11 @@ class VerseTile extends StatelessWidget {
   final List<Highlight> commentaryHighlights;
   final List<HashTag> hashtags;
   final List<Tag> tags;
+  final List<Bookmark> bookmarks;
   final VoidCallback onTap;
   final Function(Tag tag) onTagTap;
+  final Function(Bookmark bookmark) onBookmarkTap;
+  final VoidCallback? onLongPress; // for bookmark action
 
   const VerseTile({
     super.key,
@@ -22,8 +26,11 @@ class VerseTile extends StatelessWidget {
     this.commentaryHighlights = const [],
     this.hashtags = const [],
     required this.tags,
+    this.bookmarks = const [],
     required this.onTap,
     required this.onTagTap,
+    required this.onBookmarkTap,
+    this.onLongPress,
   });
 
   @override
@@ -31,7 +38,8 @@ class VerseTile extends StatelessWidget {
     final bool hasExtra = hasCommentary ||
         tags.isNotEmpty ||
         commentaryHighlights.isNotEmpty ||
-        hashtags.isNotEmpty;
+        hashtags.isNotEmpty ||
+        bookmarks.isNotEmpty;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -43,6 +51,7 @@ class VerseTile extends StatelessWidget {
           : null,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -145,7 +154,30 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // 4. Commentary preview
+              // 4. Bookmarks
+              if (bookmarks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: bookmarks.map((bm) {
+                    return ActionChip(
+                      avatar: const Icon(Icons.bookmark, size: 16),
+                      label: Text(
+                        bm.name,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.tertiaryContainer,
+                      onPressed: () => onBookmarkTap(bm),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    );
+                  }).toList(),
+                ),
+              ],
+
+              // 5. Commentary preview
               if (hasCommentary &&
                   commentaryPreview != null &&
                   commentaryPreview!.isNotEmpty) ...[
