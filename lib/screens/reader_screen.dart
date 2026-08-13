@@ -30,6 +30,7 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   List<String> allBooks = [];
+  List<String> apocryphaBooks = [];
   String currentBook = 'Genesis';
   int currentChapter = 1;
   int maxChapter = 1;
@@ -40,6 +41,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   List<Bookmark> allBookmarks = [];
   bool loading = true;
 
+  // Which verses are currently expanded to show other translations
+  Set<int> expandedVerses = {};
+
   @override
   void initState() {
     super.initState();
@@ -49,10 +53,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _init() async {
-    allBooks = await BibleService.loadAllBooks(); // clearer name
+    allBooks = await BibleService.loadAllBooks();
+    apocryphaBooks = await BibleService.loadApocryphaBooks();
     await _loadBook();
   }
-  
+
   Future<void> _loadBook() async {
     setState(() => loading = true);
 
@@ -66,8 +71,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
       currentChapter = 1;
     }
 
+    // Clear expansions when changing book/chapter
+    expandedVerses.clear();
+
     setState(() => loading = false);
   }
+
+  bool get isApocrypha => apocryphaBooks.contains(currentBook);
 
   List<Bookmark> getBookmarksForVerse(int verseNumber) {
     final target = BookmarkVerse(
@@ -76,7 +86,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       verse: verseNumber,
     );
     return allBookmarks.where((b) => b.verses.contains(target)).toList();
-  } 
+  }
 
   Future<void> _showBookmarkSheet(Verse verse) async {
     final current = BookmarkVerse(
@@ -120,10 +130,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           } else {
                             await BookmarkService.removeVerse(bm.id, current);
                           }
-                          // refresh local list
                           allBookmarks = await BookmarkService.loadAll();
                           setModalState(() {});
-                          setState(() {}); // update the verse tiles
+                          setState(() {});
                         },
                       );
                     }),
@@ -241,7 +250,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: BookChapterChooser(
-                // ← allBooks parameter removed
                 currentBook: currentBook,
                 currentChapter: currentChapter,
                 scrollController: scrollController,
@@ -278,7 +286,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
-              // Reload in case tags or commentaries changed
               _loadBook();
             },
           ),
@@ -292,7 +299,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
               itemBuilder: (context, index) {
                 final verse = chapterVerses[index];
                 final commentary = getCommentary(verse.verse);
-                final verseTags = getTagsForVerse(verse.verse);                
+                final verseTags = getTagsForVerse(verse.verse);
+
                 return VerseTile(
                   verse: verse,
                   hasCommentary: commentary != null,
@@ -319,7 +327,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     );
                   },
                   onLongPress: () => _showBookmarkSheet(verse),
-                );                   
+
+                  // === NEW REFERENCE STUFF ===
+                  showReferenceButton: !isApocrypha,
+                  isExpanded: expandedVerses.contains(verse.verse),
+                  currentBook: currentBook,
+                  onVerseNumberTap: () {
+                    setState(() {
+                      if (expandedVerses.contains(verse.verse)) {
+                        expandedVerses.remove(verse.verse);
+                      } else {
+                        expandedVerses.add(verse.verse);
+                      }
+                    });
+                  },
+                );
               },
             ),
       bottomNavigationBar: SafeArea(

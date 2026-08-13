@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ACV",
+    "name": "A Conservative Version",
+    "file": "ACV.json"
+  },
+  {
+    "id": "ASV",
+    "name": "American Standard Version",
+    "file": "ASV.json"
+  },
+  {
+    "id": "BBE",
+    "name": "Bible in Basic English",
+    "file": "BBE.json"
+  },
+  {
+    "id": "BSB",
+    "name": "Berean Standard Bible",
+    "file": "BSB.json"
+  },
+  {
+    "id": "CPDV",
+    "name": "Catholic Public Domain Version",
+    "file": "CPDV.json"
+  },
+  {
+    "id": "Darby",
+    "name": "Darby",
+    "file": "Darby.json"
+  },
+  {
+    "id": "DRC",
+    "name": "Douay-Rheims Bible Challoner Revision",
+    "file": "DRC.json"
+  },
+  {
+    "id": "Geneva1599",
+    "name": "Geneva1599",
+    "file": "Geneva1599.json"
+  },
+  {
+    "id": "NHEB",
+    "name": "New Heart English Bible",
+    "file": "NHEB.json"
+  },
+  {
+    "id": "RLT",
+    "name": "Revised Literal Translation",
+    "file": "RLT.json"
+  },
+  {
+    "id": "Rotherham",
+    "name": "Rotherham The Emphasised Bible by J-B-Rotherham",
+    "file": "Rotherham.json"
+  },
+  {
+    "id": "Webster",
+    "name": "Webster",
+    "file": "Webster.json"
+  },
+  {
+    "id": "YLT",
+    "name": "Youngs Literal Translation",
+    "file": "YLT.json"
+  },
+  {
+    "id": "Tyndale",
+    "name": "Tyndale William Tyndale Bible",
+    "file": "Tyndale.json"
+  }
+]
