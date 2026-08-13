@@ -144,6 +144,7 @@ class BibleService {
       '1John': 'I John',
       '2John': 'II John',
       '3John': 'III John',
+      'Revelation': 'Revelation of John',
     };
     return map[appName] ?? appName;
   }
