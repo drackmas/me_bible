@@ -1,0 +1,315 @@
+============================================================
+                 ME_BIBLE GIT WORKFLOW
+============================================================
+
+BRANCHES
+--------
+
+main     = stable / production-ready version
+testing  = development / testing version
+
+
+============================================================
+START WORKING
+============================================================
+
+Switch to testing:
+
+git checkout testing
+git pull origin testing
+
+Check where you are:
+
+git status
+
+
+============================================================
+SAVE MY WORK
+============================================================
+
+After making changes:
+
+git status
+git add .
+git commit -m "Describe what I changed"
+git push
+
+Example:
+
+git add .
+git commit -m "Fix commentary display"
+git push
+
+Do this as often as you want.
+
+
+============================================================
+BEFORE MOVING TESTING -> MAIN
+============================================================
+
+Make sure everything is committed:
+
+git status
+
+You want:
+
+    nothing to commit, working tree clean
+
+Then make sure testing is pushed:
+
+git push
+
+
+============================================================
+MOVE TESTING -> MAIN
+============================================================
+
+Switch to main:
+
+git checkout main
+
+Update local main:
+
+git pull origin main
+
+Merge testing into main:
+
+git merge testing
+
+Push the updated main:
+
+git push origin main
+
+
+The complete sequence:
+
+git status
+git push
+git checkout main
+git pull origin main
+git merge testing
+git push origin main
+
+
+============================================================
+SYNC TESTING AFTER MERGING
+============================================================
+
+After testing has been merged into main:
+
+git checkout testing
+git merge main
+git push
+
+Now testing is ready for the next round of development.
+
+
+============================================================
+NORMAL DEVELOPMENT CYCLE
+============================================================
+
+1. Start working:
+
+   git checkout testing
+   git pull origin testing
+
+
+2. Make changes.
+
+
+3. Save your work:
+
+   git status
+   git add .
+   git commit -m "Describe what I changed"
+   git push
+
+
+4. Test the application.
+
+
+5. When ready for main:
+
+   git status
+   git push
+   git checkout main
+   git pull origin main
+   git merge testing
+   git push origin main
+
+
+6. Prepare testing for the next round:
+
+   git checkout testing
+   git merge main
+   git push
+
+
+============================================================
+IMPORTANT RULE
+============================================================
+
+Before switching away from testing, make sure important
+work is committed.
+
+Check:
+
+git status
+
+If you have uncommitted work:
+
+git add .
+git commit -m "Describe what I changed"
+git push
+
+Then it is safe to switch branches.
+
+
+============================================================
+USEFUL COMMANDS
+============================================================
+
+What branch am I on?
+
+git branch
+
+The * indicates the current branch.
+
+Example:
+
+  main
+* testing
+
+
+What have I changed?
+
+git status
+
+
+View recent commits:
+
+git log --oneline --graph --all -10
+
+
+View all branches:
+
+git branch -a
+
+
+Switch branches:
+
+git checkout testing
+git checkout main
+
+
+============================================================
+IF SOMETHING LOOKS WRONG
+============================================================
+
+STOP.
+
+Do NOT immediately run reset, restore, rebase, or
+force-push commands.
+
+Run:
+
+git status
+git branch
+git log --oneline --graph --all -10
+
+These show:
+
+- What branch you're on
+- Any uncommitted changes
+- Recent commit history
+- Where main and testing are relative to each other
+
+
+============================================================
+QUICK REFERENCE
+============================================================
+
+START WORKING:
+
+git checkout testing
+git pull origin testing
+
+
+SAVE WORK:
+
+git status
+git add .
+git commit -m "Describe what I changed"
+git push
+
+
+TESTING -> MAIN:
+
+git status
+git push
+git checkout main
+git pull origin main
+git merge testing
+git push origin main
+
+
+SYNC TESTING AFTER MERGE:
+
+git checkout testing
+git merge main
+git push
+
+
+CHECK BRANCH:
+
+git branch
+
+
+CHECK STATUS:
+
+git status
+
+
+VIEW HISTORY:
+
+git log --oneline --graph --all -10
+
+
+============================================================
+MENTAL MODEL
+============================================================
+
+main
+  |
+  |  stable version
+  |
+  +------------------------------+
+                                 |
+                              merge
+                                 |
+                                 v
+testing ---- work ---- work ---- work
+    ^
+    |
+    +-- development happens here
+
+
+Normal flow:
+
+    testing
+       |
+       |  develop + test
+       |
+       v
+      main
+       |
+       |  sync
+       v
+    testing
+       |
+       |  next round of development
+       v
+      ...
+
+
+============================================================
