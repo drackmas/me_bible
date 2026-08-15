@@ -4,6 +4,7 @@ import '../services/commentary_service.dart';
 import 'highlighted_text.dart';
 
 class CommentarySheet extends StatefulWidget {
+  final String versionId;
   final String book;
   final int chapter;
   final int verse;
@@ -15,6 +16,7 @@ class CommentarySheet extends StatefulWidget {
 
   const CommentarySheet({
     super.key,
+    required this.versionId,
     required this.book,
     required this.chapter,
     required this.verse,
@@ -40,7 +42,14 @@ class _CommentarySheetState extends State<CommentarySheet> {
   String selectedHighlightColor = 'yellow';
   String selectedHashtagColor = 'green';
 
-  final highlightColors = ['yellow', 'green', 'blue', 'pink', 'orange', 'purple'];
+  final highlightColors = [
+    'yellow',
+    'green',
+    'blue',
+    'pink',
+    'orange',
+    'purple'
+  ];
 
   @override
   void initState() {
@@ -96,9 +105,15 @@ class _CommentarySheetState extends State<CommentarySheet> {
     final text = controller.text.trim();
 
     if (text.isEmpty && highlights.isEmpty && hashtags.isEmpty) {
-      await CommentaryService.delete(widget.book, widget.chapter, widget.verse);
+      await CommentaryService.delete(
+        widget.versionId,
+        widget.book,
+        widget.chapter,
+        widget.verse,
+      );
     } else {
       await CommentaryService.upsert(
+        widget.versionId,
         widget.book,
         Commentary(
           chapter: widget.chapter,
@@ -148,12 +163,11 @@ class _CommentarySheetState extends State<CommentarySheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${widget.book} ${widget.chapter}:${widget.verse}',
+              '${widget.book} ${widget.chapter}:${widget.verse}  (${widget.versionId})',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
 
-            // Preview of the verse with highlights
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -168,8 +182,8 @@ class _CommentarySheetState extends State<CommentarySheet> {
 
             const SizedBox(height: 20),
 
-            // ========== HASHTAGS ==========
-            const Text('Hashtags', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Hashtags',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -230,7 +244,6 @@ class _CommentarySheetState extends State<CommentarySheet> {
 
             const SizedBox(height: 20),
 
-            // ========== HIGHLIGHTS ==========
             const Text('Highlights',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -281,7 +294,6 @@ class _CommentarySheetState extends State<CommentarySheet> {
 
             const SizedBox(height: 20),
 
-            // ========== COMMENTARY ==========
             const Text('Commentary',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -304,7 +316,11 @@ class _CommentarySheetState extends State<CommentarySheet> {
                   TextButton(
                     onPressed: () async {
                       await CommentaryService.delete(
-                          widget.book, widget.chapter, widget.verse);
+                        widget.versionId,
+                        widget.book,
+                        widget.chapter,
+                        widget.verse,
+                      );
                       widget.onSaved();
                       if (mounted) Navigator.pop(context);
                     },

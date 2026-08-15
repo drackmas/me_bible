@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/bible_service.dart';
 
 class BookChapterChooser extends StatefulWidget {
+  final String versionId;
   final String currentBook;
   final int currentChapter;
   final ScrollController scrollController;
@@ -9,6 +10,7 @@ class BookChapterChooser extends StatefulWidget {
 
   const BookChapterChooser({
     super.key,
+    required this.versionId,
     required this.currentBook,
     required this.currentChapter,
     required this.scrollController,
@@ -24,9 +26,8 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
   List<String> currentBooks = [];
   int maxChapter = 1;
   bool loading = false;
-  bool showingBooks = false; // false = showing chapters of current book
+  bool showingBooks = false;
 
-  // Short abbreviations
   static const Map<String, String> abbreviations = {
     'Genesis': 'Gen',
     'Exodus': 'Exod',
@@ -36,12 +37,18 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'Joshua': 'Josh',
     'Judges': 'Judg',
     'Ruth': 'Ruth',
-    '1Samuel': '1Sam',
-    '2Samuel': '2Sam',
-    '1Kings': '1Kgs',
-    '2Kings': '2Kgs',
-    '1Chronicles': '1Chr',
-    '2Chronicles': '2Chr',
+    'I Samuel': '1Sam',
+    'II Samuel': '2Sam',
+    '1 Samuel': '1Sam',
+    '2 Samuel': '2Sam',
+    'I Kings': '1Kgs',
+    'II Kings': '2Kgs',
+    '1 Kings': '1Kgs',
+    '2 Kings': '2Kgs',
+    'I Chronicles': '1Chr',
+    'II Chronicles': '2Chr',
+    '1 Chronicles': '1Chr',
+    '2 Chronicles': '2Chr',
     'Ezra': 'Ezra',
     'Nehemiah': 'Neh',
     'Esther': 'Esth',
@@ -49,7 +56,7 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'Psalms': 'Ps',
     'Proverbs': 'Prov',
     'Ecclesiastes': 'Eccl',
-    'SongofSolomon': 'Song',
+    'Song of Solomon': 'Song',
     'Isaiah': 'Isa',
     'Jeremiah': 'Jer',
     'Lamentations': 'Lam',
@@ -73,46 +80,39 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'John': 'John',
     'Acts': 'Acts',
     'Romans': 'Rom',
-    '1Corinthians': '1Cor',
-    '2Corinthians': '2Cor',
+    'I Corinthians': '1Cor',
+    'II Corinthians': '2Cor',
+    '1 Corinthians': '1Cor',
+    '2 Corinthians': '2Cor',
     'Galatians': 'Gal',
     'Ephesians': 'Eph',
     'Philippians': 'Phil',
     'Colossians': 'Col',
-    '1Thessalonians': '1Thess',
-    '2Thessalonians': '2Thess',
-    '1Timothy': '1Tim',
-    '2Timothy': '2Tim',
+    'I Thessalonians': '1Thess',
+    'II Thessalonians': '2Thess',
+    '1 Thessalonians': '1Thess',
+    '2 Thessalonians': '2Thess',
+    'I Timothy': '1Tim',
+    'II Timothy': '2Tim',
+    '1 Timothy': '1Tim',
+    '2 Timothy': '2Tim',
     'Titus': 'Titus',
     'Philemon': 'Phlm',
     'Hebrews': 'Heb',
     'James': 'Jas',
-    '1Peter': '1Pet',
-    '2Peter': '2Pet',
-    '1John': '1John',
-    '2John': '2John',
-    '3John': '3John',
+    'I Peter': '1Pet',
+    'II Peter': '2Pet',
+    '1 Peter': '1Pet',
+    '2 Peter': '2Pet',
+    'I John': '1John',
+    'II John': '2John',
+    'III John': '3John',
+    '1 John': '1John',
+    '2 John': '2John',
+    '3 John': '3John',
     'Jude': 'Jude',
     'Revelation': 'Rev',
-    // Apocrypha
-    '1Esdras': '1Esd',
-    '2Esdras': '2Esd',
-    'Tobit': 'Tob',
-    'Judith': 'Jdt',
-    'AdditionsToEsther': 'AddEsth',
-    'WisdomOfSolomon': 'Wis',
-    'Sirach': 'Sir',
-    '1Baruch': '1Bar',
-    '2Baruch': '2Bar',
-    'PrayerofAzariah': 'PrAzar',
-    'Susanna': 'Sus',
-    'BelAndTheDragon': 'Bel',
-    'PrayerofManasseh': 'PrMan',
-    '1Maccabees': '1Macc',
-    '2Maccabees': '2Macc',
-    'EpistleofJeremiah': 'EpJer',
-    '1Enoch': '1En',
-    '2Enoch': '2En',
+    'Revelation of John': 'Rev',
   };
 
   @override
@@ -124,24 +124,13 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
 
   Future<void> _loadMaxChapter(String book) async {
     setState(() => loading = true);
-    maxChapter = await BibleService.getMaxChapter(book);
+    maxChapter = await BibleService.getMaxChapter(widget.versionId, book);
     if (mounted) setState(() => loading = false);
   }
 
-  Future<void> _showKjvBooks() async {
+  Future<void> _showAllBooks() async {
     setState(() => loading = true);
-    final books = await BibleService.loadKjvBooks();
-    setState(() {
-      currentBooks = books;
-      showingBooks = true;
-      selectedBook = null;
-      loading = false;
-    });
-  }
-
-  Future<void> _showApocryphaBooks() async {
-    setState(() => loading = true);
-    final books = await BibleService.loadApocryphaBooks();
+    final books = await BibleService.loadBooks(widget.versionId);
     setState(() {
       currentBooks = books;
       showingBooks = true;
@@ -155,7 +144,6 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     return Column(
       children: [
         const SizedBox(height: 12),
-        // Drag handle
         Container(
           width: 40,
           height: 4,
@@ -165,47 +153,27 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Title + KJV / Apocrypha buttons
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  selectedBook ?? (showingBooks ? 'Select Book' : widget.currentBook),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  selectedBook ??
+                      (showingBooks ? 'Select Book' : widget.currentBook),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // KJV button
               TextButton(
-                onPressed: _showKjvBooks,
-                style: TextButton.styleFrom(
-                  foregroundColor: showingBooks && currentBooks.isNotEmpty && 
-                      currentBooks.first == 'Genesis'
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                ),
-                child: const Text('KJV'),
-              ),
-              // Apocrypha button
-              TextButton(
-                onPressed: _showApocryphaBooks,
-                style: TextButton.styleFrom(
-                  foregroundColor: showingBooks && currentBooks.isNotEmpty && 
-                      currentBooks.first != 'Genesis'
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                ),
-                child: const Text('Apocrypha'),
+                onPressed: _showAllBooks,
+                child: const Text('Books'),
               ),
             ],
           ),
         ),
         const Divider(height: 1),
-
-        // Content
         Expanded(
           child: loading
               ? const Center(child: CircularProgressIndicator())
@@ -217,7 +185,6 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     );
   }
 
-  // Book grid (same style as before)
   Widget _buildBookGrid() {
     return GridView.builder(
       controller: widget.scrollController,
@@ -266,7 +233,6 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     );
   }
 
-  // Chapter grid (same style as before)
   Widget _buildChapterGrid() {
     return GridView.builder(
       controller: widget.scrollController,

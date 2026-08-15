@@ -7,20 +7,22 @@ class ThemeService extends ChangeNotifier {
   static const _fontSizeKey = 'font_size';
   static const _fontFamilyKey = 'font_family';
   static const _keepScreenOnKey = 'keep_screen_on';
+  static const _defaultBibleKey = 'default_bible_version';
 
   ThemeMode _mode = ThemeMode.system;
   double _fontSize = 16.0;
-  String _fontFamily = 'System'; // System is now the real default
+  String _fontFamily = 'System';
   bool _keepScreenOn = false;
+  String _defaultBibleVersion = 'AKJV'; // DEFAULT
 
   ThemeMode get mode => _mode;
   double get fontSize => _fontSize;
   String get fontFamily => _fontFamily;
   bool get keepScreenOn => _keepScreenOn;
+  String get defaultBibleVersion => _defaultBibleVersion;
 
   static const List<double> fontSizes = [14, 16, 18, 20, 22, 24, 28];
 
-  // Only System + Inter for now. Add more names later when you bundle the files.
   static const List<String> fontFamilies = [
     'System',
     'Black Ops One',
@@ -53,6 +55,8 @@ class ThemeService extends ChangeNotifier {
 
     _keepScreenOn = prefs.getBool(_keepScreenOnKey) ?? false;
     await _applyKeepScreenOn(_keepScreenOn);
+
+    _defaultBibleVersion = prefs.getString(_defaultBibleKey) ?? 'AKJV';
 
     notifyListeners();
   }
@@ -93,6 +97,14 @@ class ThemeService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setDefaultBibleVersion(String versionId) async {
+    if (_defaultBibleVersion == versionId) return;
+    _defaultBibleVersion = versionId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_defaultBibleKey, versionId);
+    notifyListeners();
+  }
+
   Future<void> _applyKeepScreenOn(bool enable) async {
     try {
       if (enable) {
@@ -100,8 +112,6 @@ class ThemeService extends ChangeNotifier {
       } else {
         await WakelockPlus.disable();
       }
-    } catch (_) {
-      // Ignore on platforms that don't support it
-    }
+    } catch (_) {}
   }
 }

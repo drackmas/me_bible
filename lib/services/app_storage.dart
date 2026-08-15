@@ -5,7 +5,6 @@ import 'package:path/path.dart' as p;
 class AppStorage {
   static Directory? _dir;
 
-  /// Returns a private folder for the app (not visible in Documents)
   static Future<Directory> get dataDir async {
     if (_dir != null) return _dir!;
 
@@ -20,6 +19,17 @@ class AppStorage {
     return dir;
   }
 
+  /// Version-scoped path: me_bible_data/AKJV/filename
+  static Future<String> pathForVersion(String versionId, String filename) async {
+    final dir = await dataDir;
+    final versionDir = Directory(p.join(dir.path, versionId));
+    if (!await versionDir.exists()) {
+      await versionDir.create(recursive: true);
+    }
+    return p.join(versionDir.path, filename);
+  }
+
+  /// Legacy path (for migration only)
   static Future<String> pathFor(String filename) async {
     final dir = await dataDir;
     return p.join(dir.path, filename);

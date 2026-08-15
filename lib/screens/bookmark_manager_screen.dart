@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/bookmark.dart';
 import '../services/bookmark_service.dart';
+import '../services/theme_service.dart';
 import 'bookmark_verses_screen.dart';
 
 class BookmarkManagerScreen extends StatefulWidget {
@@ -14,6 +16,9 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
   List<Bookmark> bookmarks = [];
   bool loading = true;
 
+  String get versionId =>
+      context.read<ThemeService>().defaultBibleVersion;
+
   @override
   void initState() {
     super.initState();
@@ -22,7 +27,7 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
 
   Future<void> _load() async {
     setState(() => loading = true);
-    bookmarks = await BookmarkService.loadAll();
+    bookmarks = await BookmarkService.loadAll(versionId);
     bookmarks.sort(
       (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
     );
@@ -36,7 +41,8 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(existing == null ? 'Create Bookmark' : 'Rename Bookmark'),
+          title:
+              Text(existing == null ? 'Create Bookmark' : 'Rename Bookmark'),
           content: TextField(
             controller: controller,
             autofocus: true,
@@ -71,9 +77,9 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
     }
 
     if (existing == null) {
-      await BookmarkService.create(name);
+      await BookmarkService.create(versionId, name);
     } else {
-      await BookmarkService.rename(existing.id, name);
+      await BookmarkService.rename(versionId, existing.id, name);
     }
 
     await _load();
@@ -104,7 +110,7 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
     );
 
     if (confirm == true) {
-      await BookmarkService.delete(bm.id);
+      await BookmarkService.delete(versionId, bm.id);
       await _load();
     }
   }
@@ -113,7 +119,7 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Bookmarks'),
+        title: Text('Manage Bookmarks ($versionId)'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -147,7 +153,8 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
                             onPressed: () => _showEditor(existing: bm),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
                             onPressed: () => _delete(bm),
                           ),
                         ],
@@ -156,9 +163,12 @@ class _BookmarkManagerScreenState extends State<BookmarkManagerScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => BookmarkVersesScreen(bookmark: bm),
+                            builder: (_) => BookmarkVersesScreen(
+                              bookmark: bm,
+                              versionId: versionId,
+                            ),
                           ),
-                        ).then((_) => _load()); // refresh count when coming back
+                        ).then((_) => _load());
                       },
                     );
                   },

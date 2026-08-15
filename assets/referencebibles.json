@@ -1,72 +1,92 @@
 [
   {
-    "id": "ACV",
-    "name": "A Conservative Version",
-    "file": "ACV.json"
-  },
-  {
-    "id": "ASV",
-    "name": "American Standard Version",
-    "file": "ASV.json"
-  },
-  {
-    "id": "BBE",
-    "name": "Bible in Basic English",
-    "file": "BBE.json"
+    "id": "AKJV",
+    "name": "American King James Version",
+    "file": "AKJV.json",
+    "canBePrimary": true
   },
   {
     "id": "BSB",
     "name": "Berean Standard Bible",
-    "file": "BSB.json"
+    "file": "BSB.json",
+    "canBePrimary": true
+  },
+  {
+    "id": "ASV",
+    "name": "American Standard Version",
+    "file": "ASV.json",
+    "canBePrimary": true
+  },
+  {
+    "id": "ACV",
+    "name": "A Conservative Version",
+    "file": "ACV.json",
+    "canBePrimary": true
+  },
+  {
+    "id": "BBE",
+    "name": "Bible in Basic English",
+    "file": "BBE.json",
+    "canBePrimary": true
   },
   {
     "id": "CPDV",
     "name": "Catholic Public Domain Version",
-    "file": "CPDV.json"
+    "file": "CPDV.json",
+    "canBePrimary": true
   },
   {
     "id": "Darby",
     "name": "Darby",
-    "file": "Darby.json"
+    "file": "Darby.json",
+    "canBePrimary": true
   },
   {
     "id": "DRC",
-    "name": "Douay-Rheims Bible Challoner Revision",
-    "file": "DRC.json"
+    "name": "Douay-Rheims Challoner",
+    "file": "DRC.json",
+    "canBePrimary": true
   },
   {
     "id": "Geneva1599",
-    "name": "Geneva1599",
-    "file": "Geneva1599.json"
+    "name": "Geneva 1599",
+    "file": "Geneva1599.json",
+    "canBePrimary": true
   },
   {
     "id": "NHEB",
     "name": "New Heart English Bible",
-    "file": "NHEB.json"
+    "file": "NHEB.json",
+    "canBePrimary": true
   },
   {
     "id": "RLT",
     "name": "Revised Literal Translation",
-    "file": "RLT.json"
+    "file": "RLT.json",
+    "canBePrimary": true
   },
   {
     "id": "Rotherham",
-    "name": "Rotherham The Emphasised Bible by J-B-Rotherham",
-    "file": "Rotherham.json"
+    "name": "Rotherham",
+    "file": "Rotherham.json",
+    "canBePrimary": true
   },
   {
     "id": "Webster",
     "name": "Webster",
-    "file": "Webster.json"
+    "file": "Webster.json",
+    "canBePrimary": true
   },
   {
     "id": "YLT",
-    "name": "Youngs Literal Translation",
-    "file": "YLT.json"
+    "name": "Young's Literal Translation",
+    "file": "YLT.json",
+    "canBePrimary": true
   },
   {
     "id": "Tyndale",
-    "name": "Tyndale William Tyndale Bible",
-    "file": "Tyndale.json"
+    "name": "Tyndale",
+    "file": "Tyndale.json",
+    "canBePrimary": true
   }
 ]

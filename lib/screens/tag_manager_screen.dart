@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/tag.dart';
 import '../services/tag_service.dart';
+import '../services/theme_service.dart';
 import 'tag_verses_screen.dart';
 
 class TagManagerScreen extends StatefulWidget {
@@ -14,6 +16,9 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   List<Tag> tags = [];
   bool loading = true;
 
+  String get versionId =>
+      context.read<ThemeService>().defaultBibleVersion;
+
   @override
   void initState() {
     super.initState();
@@ -22,14 +27,15 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
 
   Future<void> _loadTags() async {
     setState(() => loading = true);
-    tags = await TagService.loadAll();
+    tags = await TagService.loadAll(versionId);
     tags.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() => loading = false);
   }
 
   Future<void> _showTagEditor({Tag? existing}) async {
     final nameController = TextEditingController(text: existing?.name ?? '');
-    final phraseController = TextEditingController(text: existing?.phrase ?? '');
+    final phraseController =
+        TextEditingController(text: existing?.phrase ?? '');
     final variantController = TextEditingController();
     List<String> variants = List.from(existing?.variants ?? []);
 
@@ -137,7 +143,6 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         return;
       }
 
-      // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -154,24 +159,24 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
 
       try {
         if (existing == null) {
-          await TagService.createTag(name, phrase, variants: variants);
+          await TagService.createTag(versionId, name, phrase,
+              variants: variants);
         } else {
           final updated = Tag(
             name: name,
             phrase: phrase,
             variants: variants,
           );
-          await TagService.updateTag(updated);
+          await TagService.updateTag(versionId, updated);
         }
 
         if (mounted) {
-          Navigator.pop(context); // close loading
+          Navigator.pop(context);
           await _loadTags();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(existing == null
-                    ? 'Tag created'
-                    : 'Tag updated')),
+                content: Text(
+                    existing == null ? 'Tag created' : 'Tag updated')),
           );
         }
       } catch (e) {
@@ -203,7 +208,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     );
 
     if (confirm == true) {
-      await TagService.deleteTag(tag.name);
+      await TagService.deleteTag(versionId, tag.name);
       await _loadTags();
     }
   }
@@ -213,8 +218,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rebuild All Tags?'),
-        content: const Text(
-            'This will re-scan the entire Bible for every tag using the latest matching rules. It may take a while.'),
+        content: Text(
+            'This will re-scan the entire $versionId Bible for every tag. It may take a while.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -241,7 +246,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         ),
       );
 
-      await TagService.rebuildAllTags();
+      await TagService.rebuildAllTags(versionId);
 
       if (mounted) {
         Navigator.pop(context);
@@ -257,7 +262,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Tags'),
+        title: Text('Manage Tags ($versionId)'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -292,7 +297,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                             onPressed: () => _showTagEditor(existing: tag),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
                             onPressed: () => _deleteTag(tag),
                           ),
                         ],
@@ -301,7 +307,10 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TagVersesScreen(tag: tag),
+                            builder: (_) => TagVersesScreen(
+                              tag: tag,
+                              versionId: versionId,
+                            ),
                           ),
                         );
                       },

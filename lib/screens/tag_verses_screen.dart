@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/tag.dart';
-import '../services/bible_service.dart';
 import '../models/verse.dart';
+import '../services/bible_service.dart';
 import 'reader_screen.dart';
 
 class TagVersesScreen extends StatefulWidget {
   final Tag tag;
+  final String versionId;
 
-  const TagVersesScreen({super.key, required this.tag});
+  const TagVersesScreen({
+    super.key,
+    required this.tag,
+    required this.versionId,
+  });
 
   @override
   State<TagVersesScreen> createState() => _TagVersesScreenState();
@@ -27,10 +32,12 @@ class _TagVersesScreenState extends State<TagVersesScreen> {
     final List<Map<String, dynamic>> result = [];
 
     for (final occ in widget.tag.occurrences) {
-      final verses = await BibleService.loadBook(occ.book);
+      final verses =
+          await BibleService.loadBook(widget.versionId, occ.book);
       final verse = verses.firstWhere(
         (v) => v.chapter == occ.chapter && v.verse == occ.verse,
-        orElse: () => Verse(chapter: occ.chapter, verse: occ.verse, text: ''),
+        orElse: () =>
+            Verse(chapter: occ.chapter, verse: occ.verse, text: ''),
       );
 
       result.add({

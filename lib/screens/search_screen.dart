@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/verse.dart';
+import 'package:provider/provider.dart';
 import '../services/bible_service.dart';
+import '../services/theme_service.dart';
 import 'reader_screen.dart';
 
 class SearchResult {
@@ -35,6 +36,9 @@ class _SearchScreenState extends State<SearchScreen> {
   List<SearchResult> results = [];
   String? error;
 
+  String get versionId =>
+      context.read<ThemeService>().defaultBibleVersion;
+
   Future<void> _performSearch() async {
     final query = _controller.text.trim();
     if (query.isEmpty) {
@@ -52,13 +56,13 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final books = await BibleService.loadBookList();
+      final books = await BibleService.loadBooks(versionId);
       final List<SearchResult> found = [];
 
       final String searchQuery = caseSensitive ? query : query.toLowerCase();
 
       for (final book in books) {
-        final verses = await BibleService.loadBook(book);
+        final verses = await BibleService.loadBook(versionId, book);
 
         for (final verse in verses) {
           bool matches = false;
@@ -99,7 +103,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _jumpToVerse(SearchResult r) {
-    // Clear the navigation stack and open Reader at the exact place
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
@@ -121,7 +124,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Bible'),
+        title: Text('Search Bible ($versionId)'),
       ),
       body: Column(
         children: [

@@ -7,8 +7,13 @@ import 'reader_screen.dart';
 
 class BookmarkVersesScreen extends StatefulWidget {
   final Bookmark bookmark;
+  final String versionId;
 
-  const BookmarkVersesScreen({super.key, required this.bookmark});
+  const BookmarkVersesScreen({
+    super.key,
+    required this.bookmark,
+    required this.versionId,
+  });
 
   @override
   State<BookmarkVersesScreen> createState() => _BookmarkVersesScreenState();
@@ -29,8 +34,7 @@ class _BookmarkVersesScreenState extends State<BookmarkVersesScreen> {
   Future<void> _load() async {
     setState(() => loading = true);
 
-    // Reload the latest version of this bookmark
-    final all = await BookmarkService.loadAll();
+    final all = await BookmarkService.loadAll(widget.versionId);
     bookmark = all.firstWhere(
       (b) => b.id == widget.bookmark.id,
       orElse: () => widget.bookmark,
@@ -39,10 +43,12 @@ class _BookmarkVersesScreenState extends State<BookmarkVersesScreen> {
     final List<Map<String, dynamic>> result = [];
 
     for (final bv in bookmark.verses) {
-      final verses = await BibleService.loadBook(bv.book);
+      final verses =
+          await BibleService.loadBook(widget.versionId, bv.book);
       final verse = verses.firstWhere(
         (v) => v.chapter == bv.chapter && v.verse == bv.verse,
-        orElse: () => Verse(chapter: bv.chapter, verse: bv.verse, text: ''),
+        orElse: () =>
+            Verse(chapter: bv.chapter, verse: bv.verse, text: ''),
       );
 
       result.add({
@@ -58,7 +64,7 @@ class _BookmarkVersesScreenState extends State<BookmarkVersesScreen> {
   }
 
   Future<void> _removeVerse(BookmarkVerse bv) async {
-    await BookmarkService.removeVerse(bookmark.id, bv);
+    await BookmarkService.removeVerse(widget.versionId, bookmark.id, bv);
     await _load();
   }
 
@@ -104,7 +110,8 @@ class _BookmarkVersesScreenState extends State<BookmarkVersesScreen> {
                           child: Text(text),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                          icon: const Icon(Icons.remove_circle_outline,
+                              color: Colors.red),
                           tooltip: 'Remove from bookmark',
                           onPressed: () => _removeVerse(bv),
                         ),

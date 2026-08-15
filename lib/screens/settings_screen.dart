@@ -5,6 +5,7 @@ import '../services/commentary_service.dart';
 import '../services/tag_service.dart';
 import '../services/bookmark_service.dart';
 import '../services/theme_service.dart';
+import '../services/bible_service.dart';
 import 'tag_manager_screen.dart';
 import 'bookmark_manager_screen.dart';
 import 'search_screen.dart';
@@ -13,13 +14,14 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   Future<void> _eraseAllData(BuildContext context) async {
-    // First confirmation
+    final versionId = context.read<ThemeService>().defaultBibleVersion;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Erase All Data?'),
-        content: const Text(
-          'This will permanently delete:\n\n'
+        content: Text(
+          'This will permanently delete for $versionId:\n\n'
           '• All commentaries\n'
           '• All highlights\n'
           '• All hashtags\n'
@@ -44,14 +46,13 @@ class SettingsScreen extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    // Second (stronger) confirmation
     final reallySure = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Final Confirmation'),
         content: const Text(
           'This is your last chance.\n\n'
-          'All your notes, highlights, hashtags, tags and bookmarks will be permanently deleted.',
+          'All your notes, highlights, hashtags, tags and bookmarks for this Bible version will be permanently deleted.',
         ),
         actions: [
           TextButton(
@@ -69,7 +70,6 @@ class SettingsScreen extends StatelessWidget {
 
     if (reallySure != true) return;
 
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -85,15 +85,15 @@ class SettingsScreen extends StatelessWidget {
     );
 
     try {
-      await CommentaryService.eraseAllCommentaries();
-      await TagService.eraseAllTags();
-      await BookmarkService.eraseAll();
+      await CommentaryService.eraseAllCommentaries(versionId);
+      await TagService.eraseAllTags(versionId);
+      await BookmarkService.eraseAll(versionId);
 
       if (context.mounted) {
-        Navigator.pop(context); // close loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All data has been erased'),
+          SnackBar(
+            content: Text('All data for $versionId has been erased'),
             backgroundColor: Colors.red,
           ),
         );
@@ -111,6 +111,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeService = context.watch<ThemeService>();
+    final versionId = themeService.defaultBibleVersion;
 
     return Scaffold(
       appBar: AppBar(
@@ -121,11 +122,10 @@ class SettingsScreen extends StatelessWidget {
           // ===== NAVIGATION / TOOLS =====
           const _SectionHeader(title: 'Tools & Navigation'),
 
-          // ===== SEARCH =====
           ListTile(
             leading: const Icon(Icons.search),
             title: const Text('Search Bible'),
-            subtitle: const Text('Search for a word or phrase across the whole Bible'),
+            subtitle: Text('Search across $versionId'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -135,11 +135,10 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
 
-          // ===== TAGS =====
           ListTile(
             leading: const Icon(Icons.label_outline),
             title: const Text('Create / Manage Tags'),
-            subtitle: const Text('Tag phrases like "son of man" across the whole Bible'),
+            subtitle: Text('Tags for $versionId'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -149,16 +148,16 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
 
-          // ===== BOOKMARKS =====
           ListTile(
             leading: const Icon(Icons.bookmark_border),
             title: const Text('Manage Bookmarks'),
-            subtitle: const Text('Create, rename or delete bookmark collections'),
+            subtitle: Text('Bookmarks for $versionId'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const BookmarkManagerScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const BookmarkManagerScreen()),
               );
             },
           ),
@@ -168,7 +167,45 @@ class SettingsScreen extends StatelessWidget {
           // ===== APPEARANCE & READING =====
           const _SectionHeader(title: 'Appearance & Reading'),
 
-          // ===== THEME =====
+          // ===== DEFAULT BIBLE VERSION =====
+          ListTile(
+            leading: const Icon(Icons.menu_book),
+            title: const Text('Default Bible Version'),
+            subtitle: FutureBuilder<String>(
+              future: BibleService.getVersionDisplayName(versionId),
+              builder: (context, snapshot) {
+                return Text(snapshot.data ?? versionId);
+              },
+            ),
+            trailing: FutureBuilder<List<Map<String, dynamic>>>(
+              future: BibleService.loadPrimaryCapableBibles(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  );
+                }
+                return DropdownButton<String>(
+                  value: versionId,
+                  underline: const SizedBox(),
+                  items: snapshot.data!
+                      .map((b) => DropdownMenuItem(
+                            value: b['id'] as String,
+                            child: Text(b['name'] as String),
+                          ))
+                      .toList(),
+                  onChanged: (id) {
+                    if (id != null) {
+                      context.read<ThemeService>().setDefaultBibleVersion(id);
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+
           ListTile(
             leading: const Icon(Icons.brightness_6),
             title: const Text('Theme'),
@@ -195,7 +232,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
-          // ===== FONT FAMILY =====
           ListTile(
             leading: const Icon(Icons.font_download_outlined),
             title: const Text('Font Family'),
@@ -214,7 +250,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
-          // ===== FONT SIZE =====
           ListTile(
             leading: const Icon(Icons.format_size),
             title: const Text('Font Size'),
@@ -236,11 +271,11 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
-          // ===== KEEP SCREEN ON =====
           SwitchListTile(
             secondary: const Icon(Icons.screen_lock_portrait_outlined),
             title: const Text('Keep screen on'),
-            subtitle: const Text('Prevent the screen from turning off while reading'),
+            subtitle:
+                const Text('Prevent the screen from turning off while reading'),
             value: themeService.keepScreenOn,
             onChanged: (value) {
               context.read<ThemeService>().setKeepScreenOn(value);
@@ -252,14 +287,13 @@ class SettingsScreen extends StatelessWidget {
           // ===== DATA & BACKUP =====
           const _SectionHeader(title: 'Data & Backup'),
 
-          // ===== EXPORT =====
           ListTile(
             leading: const Icon(Icons.upload_file),
             title: const Text('Export All Data'),
-            subtitle: const Text('Commentaries + Highlights + Tags + Bookmarks'),
+            subtitle: Text('Commentaries + Tags + Bookmarks ($versionId)'),
             onTap: () async {
               try {
-                final path = await CommentaryService.exportAll();
+                final path = await CommentaryService.exportAll(versionId);
                 if (path == null) return;
 
                 if (context.mounted) {
@@ -280,14 +314,16 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
 
-          // ===== IMPORT =====
           ListTile(
             leading: const Icon(Icons.download),
             title: const Text('Import Data'),
-            subtitle: const Text('Restore Commentaries + Highlights + Tags + Bookmarks'),
+            subtitle: const Text(
+                'Restore Commentaries + Highlights + Tags + Bookmarks'),
             onTap: () async {
               try {
-                final result = await CommentaryService.importAll();
+                final result = await CommentaryService.importAll(
+                  forceVersionId: versionId,
+                );
 
                 if (context.mounted) {
                   final c = result['commentaries'] ?? 0;
@@ -299,7 +335,7 @@ class SettingsScreen extends StatelessWidget {
                       content: Text(
                         (c == 0 && t == 0 && b == 0)
                             ? 'Import cancelled or no data found'
-                            : 'Imported $c commentaries, $t tags and $b bookmarks',
+                            : 'Imported $c commentaries, $t tags and $b bookmarks into $versionId',
                       ),
                       duration: const Duration(seconds: 4),
                     ),
@@ -315,22 +351,20 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
 
-          // ===== ERASE DATA =====
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text(
               'Erase All Data',
               style: TextStyle(color: Colors.red),
             ),
-            subtitle: const Text(
-              'Permanently delete all commentaries, tags, highlights, hashtags & bookmarks',
+            subtitle: Text(
+              'Permanently delete all data for $versionId',
             ),
             onTap: () => _eraseAllData(context),
           ),
 
           const Divider(),
 
-          // ===== EXIT APP =====
           ListTile(
             leading: const Icon(Icons.power_settings_new),
             title: const Text('Exit App'),

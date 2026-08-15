@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/verse.dart';
 import '../models/commentary.dart';
 import '../models/tag.dart';
+import '../models/bookmark.dart';
 import '../services/bible_service.dart';
 import '../services/commentary_service.dart';
 import '../services/tag_service.dart';
+import '../services/bookmark_service.dart';
+import '../services/theme_service.dart';
 import '../widgets/verse_tile.dart';
 import '../widgets/commentary_sheet.dart';
 import '../widgets/book_chapter_chooser.dart';
 import 'settings_screen.dart';
 import 'tag_verses_screen.dart';
-import '../models/bookmark.dart';
-import '../services/bookmark_service.dart';
 import 'bookmark_verses_screen.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -30,7 +32,6 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   List<String> allBooks = [];
-  List<String> apocryphaBooks = [];
   String currentBook = 'Genesis';
   int currentChapter = 1;
   int maxChapter = 1;
@@ -41,8 +42,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
   List<Bookmark> allBookmarks = [];
   bool loading = true;
 
-  // Which verses are currently expanded to show other translations
   Set<int> expandedVerses = {};
+
+  String get versionId =>
+      context.read<ThemeService>().defaultBibleVersion;
 
   @override
   void initState() {
@@ -53,31 +56,29 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _init() async {
-    allBooks = await BibleService.loadAllBooks();
-    apocryphaBooks = await BibleService.loadApocryphaBooks();
+    allBooks = await BibleService.loadBooks(versionId);
     await _loadBook();
   }
 
   Future<void> _loadBook() async {
     setState(() => loading = true);
 
-    verses = await BibleService.loadBook(currentBook);
-    maxChapter = await BibleService.getMaxChapter(currentBook);
-    commentaries = await CommentaryService.load(currentBook);
-    allTags = await TagService.loadAll();
-    allBookmarks = await BookmarkService.loadAll();
+    final vid = versionId;
+
+    verses = await BibleService.loadBook(vid, currentBook);
+    maxChapter = await BibleService.getMaxChapter(vid, currentBook);
+    commentaries = await CommentaryService.load(vid, currentBook);
+    allTags = await TagService.loadAll(vid);
+    allBookmarks = await BookmarkService.loadAll(vid);
 
     if (currentChapter > maxChapter) {
       currentChapter = 1;
     }
 
-    // Clear expansions when changing book/chapter
     expandedVerses.clear();
 
     setState(() => loading = false);
   }
-
-  bool get isApocrypha => apocryphaBooks.contains(currentBook);
 
   List<Bookmark> getBookmarksForVerse(int verseNumber) {
     final target = BookmarkVerse(
@@ -94,6 +95,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       chapter: currentChapter,
       verse: verse.verse,
     );
+    final vid = versionId;
 
     await showModalBottomSheet(
       context: context,
@@ -126,11 +128,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         value: already,
                         onChanged: (checked) async {
                           if (checked == true) {
-                            await BookmarkService.addVerse(bm.id, current);
+                            await BookmarkService.addVerse(vid, bm.id, current);
                           } else {
-                            await BookmarkService.removeVerse(bm.id, current);
+                            await BookmarkService.removeVerse(
+                                vid, bm.id, current);
                           }
-                          allBookmarks = await BookmarkService.loadAll();
+                          allBookmarks = await BookmarkService.loadAll(vid);
                           setModalState(() {});
                           setState(() {});
                         },
@@ -143,9 +146,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       onTap: () async {
                         final name = await _askBookmarkName();
                         if (name != null && name.isNotEmpty) {
-                          final newBm = await BookmarkService.create(name);
-                          await BookmarkService.addVerse(newBm.id, current);
-                          allBookmarks = await BookmarkService.loadAll();
+                          final newBm =
+                              await BookmarkService.create(vid, name);
+                          await BookmarkService.addVerse(
+                              vid, newBm.id, current);
+                          allBookmarks = await BookmarkService.loadAll(vid);
                           if (context.mounted) Navigator.pop(context);
                           setState(() {});
                         }
@@ -215,11 +220,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   void _openCommentary(Verse verse) {
     final existing = getCommentary(verse.verse);
+    final vid = versionId;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => CommentarySheet(
+        versionId: vid,
         book: currentBook,
         chapter: currentChapter,
         verse: verse.verse,
@@ -250,6 +257,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: BookChapterChooser(
+                versionId: versionId,
                 currentBook: currentBook,
                 currentChapter: currentChapter,
                 scrollController: scrollController,
@@ -271,11 +279,24 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild when default Bible changes
+    final themeService = context.watch<ThemeService>();
+    final currentVersion = themeService.defaultBibleVersion;
+
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
           onTap: _openAndBibleStyleChooser,
-          child: Text('$currentBook $currentChapter'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('$currentBook $currentChapter'),
+              Text(
+                currentVersion,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -286,7 +307,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
-              _loadBook();
+              // Reload everything in case the default Bible (or data) changed
+              allBooks = await BibleService.loadBooks(versionId);
+              await _loadBook();
             },
           ),
         ],
@@ -314,7 +337,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => TagVersesScreen(tag: tag),
+                        builder: (_) => TagVersesScreen(
+                          tag: tag,
+                          versionId: versionId,
+                        ),
                       ),
                     );
                   },
@@ -322,16 +348,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => BookmarkVersesScreen(bookmark: bm),
+                        builder: (_) => BookmarkVersesScreen(
+                          bookmark: bm,
+                          versionId: versionId,
+                        ),
                       ),
                     );
                   },
                   onLongPress: () => _showBookmarkSheet(verse),
-
-                  // === NEW REFERENCE STUFF ===
-                  showReferenceButton: !isApocrypha,
+                  showReferenceButton: true,
                   isExpanded: expandedVerses.contains(verse.verse),
                   currentBook: currentBook,
+                  primaryVersionId: versionId,
                   onVerseNumberTap: () {
                     setState(() {
                       if (expandedVerses.contains(verse.verse)) {
@@ -368,7 +396,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: currentChapter > 1
-                    ? () => setState(() => currentChapter--)
+                    ? () {
+                        setState(() => currentChapter--);
+                        // no need to reload whole book, just chapter filter
+                      }
                     : null,
               ),
               GestureDetector(
@@ -393,7 +424,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: currentChapter < maxChapter
-                    ? () => setState(() => currentChapter++)
+                    ? () {
+                        setState(() => currentChapter++);
+                      }
                     : null,
               ),
               const Expanded(child: SizedBox()),

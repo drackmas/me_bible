@@ -19,11 +19,11 @@ class VerseTile extends StatelessWidget {
   final Function(Bookmark bookmark) onBookmarkTap;
   final VoidCallback? onLongPress;
 
-  // Reference Bible stuff
   final bool showReferenceButton;
   final bool isExpanded;
   final VoidCallback? onVerseNumberTap;
   final String currentBook;
+  final String primaryVersionId;
 
   const VerseTile({
     super.key,
@@ -42,6 +42,7 @@ class VerseTile extends StatelessWidget {
     this.isExpanded = false,
     this.onVerseNumberTap,
     required this.currentBook,
+    required this.primaryVersionId,
   });
 
   @override
@@ -69,7 +70,6 @@ class VerseTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Verse number + text
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -107,11 +107,11 @@ class VerseTile extends StatelessWidget {
                 ],
               ),
 
-              // Expanded reference versions
               if (isExpanded && onVerseNumberTap != null) ...[
                 const SizedBox(height: 12),
                 FutureBuilder<List<MapEntry<String, String?>>>(
                   future: BibleService.getAllReferenceVerses(
+                    primaryVersionId,
                     currentBook,
                     verse.chapter,
                     verse.verse,
@@ -170,7 +170,6 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // Hashtags
               if (hashtags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -220,7 +219,6 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // Tags
               if (tags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -228,7 +226,8 @@ class VerseTile extends StatelessWidget {
                   runSpacing: 6,
                   children: tags.map((tag) {
                     return ActionChip(
-                      label: Text(tag.name, style: const TextStyle(fontSize: 12)),
+                      label:
+                          Text(tag.name, style: const TextStyle(fontSize: 12)),
                       backgroundColor:
                           Theme.of(context).colorScheme.secondaryContainer,
                       onPressed: () => onTagTap(tag),
@@ -239,7 +238,6 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // Bookmarks
               if (bookmarks.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -248,7 +246,8 @@ class VerseTile extends StatelessWidget {
                   children: bookmarks.map((bm) {
                     return ActionChip(
                       avatar: const Icon(Icons.bookmark, size: 16),
-                      label: Text(bm.name, style: const TextStyle(fontSize: 12)),
+                      label:
+                          Text(bm.name, style: const TextStyle(fontSize: 12)),
                       backgroundColor:
                           Theme.of(context).colorScheme.tertiaryContainer,
                       onPressed: () => onBookmarkTap(bm),
@@ -259,7 +258,6 @@ class VerseTile extends StatelessWidget {
                 ),
               ],
 
-              // Commentary preview
               if (hasCommentary &&
                   commentaryPreview != null &&
                   commentaryPreview!.isNotEmpty) ...[
