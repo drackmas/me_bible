@@ -2,8 +2,9 @@ name: Build Multi-Platform App
 
 on:
   push:
-    branches: [main]
-
+    branches:
+      - main
+      - testing
 jobs:
 
   # ----------------------------------------------------
