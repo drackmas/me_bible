@@ -69,7 +69,7 @@ class TagService {
   }
 
   static Future<void> _rebuildOccurrences(String versionId, Tag tag) async {
-    final books = await BibleService.loadBooks(versionId);
+    final books = await BibleService.loadAllBooksIncludingApocrypha(versionId);
     final List<TagOccurrence> occurrences = [];
 
     final allPhrases = [tag.phrase, ...tag.variants]

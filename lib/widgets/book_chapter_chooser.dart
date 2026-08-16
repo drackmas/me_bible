@@ -27,6 +27,7 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
   int maxChapter = 1;
   bool loading = false;
   bool showingBooks = false;
+  bool showingApocrypha = false;
 
   static const Map<String, String> abbreviations = {
     'Genesis': 'Gen',
@@ -113,13 +114,38 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     'Jude': 'Jude',
     'Revelation': 'Rev',
     'Revelation of John': 'Rev',
+    // Apocrypha
+    '1Esdras': '1Esd',
+    '2Esdras': '2Esd',
+    'Tobit': 'Tob',
+    'Judith': 'Jdt',
+    'AdditionsToEsther': 'AddEsth',
+    'WisdomOfSolomon': 'Wis',
+    'Sirach': 'Sir',
+    '1Baruch': '1Bar',
+    '2Baruch': '2Bar',
+    'PrayerofAzariah': 'PrAzar',
+    'Susanna': 'Sus',
+    'BelAndTheDragon': 'Bel',
+    'PrayerofManasseh': 'PrMan',
+    '1Maccabees': '1Macc',
+    '2Maccabees': '2Macc',
+    'EpistleofJeremiah': 'EpJer',
+    '1Enoch': '1En',
+    '2Enoch': '2En',
   };
 
   @override
   void initState() {
     super.initState();
     selectedBook = widget.currentBook;
-    _loadMaxChapter(widget.currentBook);
+    _initCurrentSection();
+  }
+
+  Future<void> _initCurrentSection() async {
+    final isApo = await BibleService.isApocryphaBook(widget.currentBook);
+    showingApocrypha = isApo;
+    await _loadMaxChapter(widget.currentBook);
   }
 
   Future<void> _loadMaxChapter(String book) async {
@@ -128,12 +154,25 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
     if (mounted) setState(() => loading = false);
   }
 
-  Future<void> _showAllBooks() async {
+  Future<void> _showBibleBooks() async {
     setState(() => loading = true);
     final books = await BibleService.loadBooks(widget.versionId);
     setState(() {
       currentBooks = books;
       showingBooks = true;
+      showingApocrypha = false;
+      selectedBook = null;
+      loading = false;
+    });
+  }
+
+  Future<void> _showApocryphaBooks() async {
+    setState(() => loading = true);
+    final books = await BibleService.loadApocryphaBooks();
+    setState(() {
+      currentBooks = books;
+      showingBooks = true;
+      showingApocrypha = true;
       selectedBook = null;
       loading = false;
     });
@@ -160,15 +199,33 @@ class _BookChapterChooserState extends State<BookChapterChooser> {
               Expanded(
                 child: Text(
                   selectedBook ??
-                      (showingBooks ? 'Select Book' : widget.currentBook),
+                      (showingBooks
+                          ? (showingApocrypha
+                              ? 'Select Apocrypha'
+                              : 'Select Book')
+                          : widget.currentBook),
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               TextButton(
-                onPressed: _showAllBooks,
-                child: const Text('Books'),
+                onPressed: _showBibleBooks,
+                style: TextButton.styleFrom(
+                  foregroundColor: showingBooks && !showingApocrypha
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                child: const Text('Bible'),
+              ),
+              TextButton(
+                onPressed: _showApocryphaBooks,
+                style: TextButton.styleFrom(
+                  foregroundColor: showingBooks && showingApocrypha
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                child: const Text('Apocrypha'),
               ),
             ],
           ),

@@ -56,7 +56,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final books = await BibleService.loadBooks(versionId);
+      final books = await BibleService.loadAllBooksIncludingApocrypha(versionId);
       final List<SearchResult> found = [];
 
       final String searchQuery = caseSensitive ? query : query.toLowerCase();

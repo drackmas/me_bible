@@ -41,6 +41,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   List<Tag> allTags = [];
   List<Bookmark> allBookmarks = [];
   bool loading = true;
+  bool isApocrypha = false;
 
   Set<int> expandedVerses = {};
 
@@ -70,6 +71,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     commentaries = await CommentaryService.load(vid, currentBook);
     allTags = await TagService.loadAll(vid);
     allBookmarks = await BookmarkService.loadAll(vid);
+    isApocrypha = await BibleService.isApocryphaBook(currentBook);
 
     if (currentChapter > maxChapter) {
       currentChapter = 1;
@@ -356,19 +358,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     );
                   },
                   onLongPress: () => _showBookmarkSheet(verse),
-                  showReferenceButton: true,
+                  showReferenceButton: !isApocrypha,
                   isExpanded: expandedVerses.contains(verse.verse),
                   currentBook: currentBook,
                   primaryVersionId: versionId,
-                  onVerseNumberTap: () {
-                    setState(() {
-                      if (expandedVerses.contains(verse.verse)) {
-                        expandedVerses.remove(verse.verse);
-                      } else {
-                        expandedVerses.add(verse.verse);
-                      }
-                    });
-                  },
+                  onVerseNumberTap: isApocrypha
+                      ? null
+                      : () {
+                          setState(() {
+                            if (expandedVerses.contains(verse.verse)) {
+                              expandedVerses.remove(verse.verse);
+                            } else {
+                              expandedVerses.add(verse.verse);
+                            }
+                          });
+                        },
                 );
               },
             ),
@@ -398,7 +402,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 onPressed: currentChapter > 1
                     ? () {
                         setState(() => currentChapter--);
-                        // no need to reload whole book, just chapter filter
                       }
                     : null,
               ),

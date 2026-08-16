@@ -4,7 +4,7 @@ import '../models/verse.dart';
 
 class BibleService {
   // --------------------------------------------------
-  // Available translations
+  // Available translations (single-file JSON)
   // --------------------------------------------------
 
   static List<Map<String, dynamic>>? _allBibles;
@@ -21,10 +21,12 @@ class BibleService {
     return all.where((b) => b['canBePrimary'] == true).toList();
   }
 
-  // --------------------------------------------------
-  // Cache: versionId → bookName → chapter → verse → text
-  // --------------------------------------------------
+  // versionId → bookName → chapter → verse → text
   static final Map<String, Map<String, Map<int, Map<int, String>>>> _cache = {};
+
+  // Apocrypha (legacy per-book files)
+  static final Map<String, Map<int, Map<int, String>>> _apocryphaCache = {};
+  static List<String>? _apocryphaBookList;
 
   static Future<void> _ensureLoaded(String versionId) async {
     if (_cache.containsKey(versionId)) return;
@@ -65,21 +67,66 @@ class BibleService {
   }
 
   // --------------------------------------------------
-  // Book list for a given version (primary)
+  // Apocrypha
   // --------------------------------------------------
 
+  static Future<List<String>> loadApocryphaBooks() async {
+    if (_apocryphaBookList != null) return _apocryphaBookList!;
+    final raw = await rootBundle.loadString('assets/Apocrypha.json');
+    final List<dynamic> data = json.decode(raw);
+    _apocryphaBookList = data.map((e) => e.toString()).toList();
+    return _apocryphaBookList!;
+  }
+
+  static Future<bool> isApocryphaBook(String bookName) async {
+    final list = await loadApocryphaBooks();
+    return list.contains(bookName);
+  }
+
+  static Future<void> _ensureApocryphaBookLoaded(String bookName) async {
+    if (_apocryphaCache.containsKey(bookName)) return;
+
+    final raw = await rootBundle.loadString('assets/$bookName.json');
+    final data = json.decode(raw);
+    final List chaptersRaw = data['chapters'] as List;
+
+    final chapters = <int, Map<int, String>>{};
+    for (final ch in chaptersRaw) {
+      final chNum = int.parse(ch['chapter'].toString());
+      final verses = <int, String>{};
+      for (final v in ch['verses'] as List) {
+        verses[int.parse(v['verse'].toString())] = v['text'] as String;
+      }
+      chapters[chNum] = verses;
+    }
+    _apocryphaCache[bookName] = chapters;
+  }
+
+  // --------------------------------------------------
+  // Book lists
+  // --------------------------------------------------
+
+  /// Canonical books from the selected single-file version.
   static Future<List<String>> loadBooks(String versionId) async {
     await _ensureLoaded(versionId);
     final books = _cache[versionId]!.keys.toList();
-    // Keep a sensible order (Genesis first, etc.)
     books.sort(_canonicalBookOrder);
     return books;
+  }
+
+  /// Canonical + Apocrypha (search / tag rebuild).
+  static Future<List<String>> loadAllBooksIncludingApocrypha(
+      String versionId) async {
+    final canonical = await loadBooks(versionId);
+    final apo = await loadApocryphaBooks();
+    return [...canonical, ...apo];
   }
 
   static int _canonicalBookOrder(String a, String b) {
     const order = [
       'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
-      'Joshua', 'Judges', 'Ruth', 'I Samuel', 'II Samuel', '1 Samuel', '2 Samuel',
+      'Joshua', 'Judges', 'Ruth',
+      'I Samuel', 'II Samuel', '1 Samuel', '2 Samuel',
       'I Kings', 'II Kings', '1 Kings', '2 Kings',
       'I Chronicles', 'II Chronicles', '1 Chronicles', '2 Chronicles',
       'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
@@ -105,18 +152,31 @@ class BibleService {
   }
 
   // --------------------------------------------------
-  // Load a book from the primary version
+  // Load book (version or apocrypha)
   // --------------------------------------------------
 
   static Future<List<Verse>> loadBook(String versionId, String bookName) async {
-    await _ensureLoaded(versionId);
+    if (await isApocryphaBook(bookName)) {
+      return _loadApocryphaBook(bookName);
+    }
 
+    await _ensureLoaded(versionId);
     final normalized = normalizeBookName(bookName);
     final chapters = _cache[versionId]?[normalized] ??
         _cache[versionId]?[bookName];
 
     if (chapters == null) return [];
+    return _chaptersToVerses(chapters);
+  }
 
+  static Future<List<Verse>> _loadApocryphaBook(String bookName) async {
+    await _ensureApocryphaBookLoaded(bookName);
+    final chapters = _apocryphaCache[bookName];
+    if (chapters == null) return [];
+    return _chaptersToVerses(chapters);
+  }
+
+  static List<Verse> _chaptersToVerses(Map<int, Map<int, String>> chapters) {
     final allVerses = <Verse>[];
     final sortedChapters = chapters.keys.toList()..sort();
 
@@ -135,6 +195,13 @@ class BibleService {
   }
 
   static Future<int> getMaxChapter(String versionId, String bookName) async {
+    if (await isApocryphaBook(bookName)) {
+      await _ensureApocryphaBookLoaded(bookName);
+      final chapters = _apocryphaCache[bookName];
+      if (chapters == null || chapters.isEmpty) return 1;
+      return chapters.keys.reduce((a, b) => a > b ? a : b);
+    }
+
     await _ensureLoaded(versionId);
     final normalized = normalizeBookName(bookName);
     final chapters = _cache[versionId]?[normalized] ??
@@ -143,7 +210,16 @@ class BibleService {
     return chapters.keys.reduce((a, b) => a > b ? a : b);
   }
 
-  static Future<List<int>> getChapterNumbers(String versionId, String bookName) async {
+  static Future<List<int>> getChapterNumbers(
+      String versionId, String bookName) async {
+    if (await isApocryphaBook(bookName)) {
+      await _ensureApocryphaBookLoaded(bookName);
+      final chapters = _apocryphaCache[bookName];
+      if (chapters == null) return [1];
+      final list = chapters.keys.toList()..sort();
+      return list;
+    }
+
     await _ensureLoaded(versionId);
     final normalized = normalizeBookName(bookName);
     final chapters = _cache[versionId]?[normalized] ??
@@ -154,7 +230,7 @@ class BibleService {
   }
 
   // --------------------------------------------------
-  // Reference verses (everything except the primary)
+  // Reference verses (other single-file versions only)
   // --------------------------------------------------
 
   static Future<String?> getReferenceVerse(
@@ -163,6 +239,8 @@ class BibleService {
     int chapter,
     int verse,
   ) async {
+    if (await isApocryphaBook(appBookName)) return null;
+
     await _ensureLoaded(versionId);
     final normalized = normalizeBookName(appBookName);
     return _cache[versionId]?[normalized]?[chapter]?[verse] ??
@@ -175,21 +253,20 @@ class BibleService {
     int chapter,
     int verse,
   ) async {
+    if (await isApocryphaBook(appBookName)) return [];
+
     final bibles = await loadAllBibles();
     final results = <MapEntry<String, String?>>[];
 
     for (final b in bibles) {
       final id = b['id'] as String;
-      if (id == primaryVersionId) continue; // skip primary
-      final text = await getReferenceVerse(id, appBookName, chapter, verse);
+      if (id == primaryVersionId) continue;
+      final text =
+          await getReferenceVerse(id, appBookName, chapter, verse);
       results.add(MapEntry(id, text));
     }
     return results;
   }
-
-  // --------------------------------------------------
-  // Book name normalization (app name ↔ JSON name)
-  // --------------------------------------------------
 
   static String normalizeBookName(String appName) {
     const map = {
@@ -212,14 +289,10 @@ class BibleService {
       '2John': 'II John',
       '3John': 'III John',
       'Revelation': 'Revelation of John',
-      // reverse direction also useful
-      'I Samuel': 'I Samuel',
-      'II Samuel': 'II Samuel',
     };
     return map[appName] ?? appName;
   }
 
-  // Convenience: display name of a version
   static Future<String> getVersionDisplayName(String versionId) async {
     final bibles = await loadAllBibles();
     final info = bibles.cast<Map<String, dynamic>?>().firstWhere(

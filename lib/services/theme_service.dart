@@ -13,7 +13,7 @@ class ThemeService extends ChangeNotifier {
   double _fontSize = 16.0;
   String _fontFamily = 'System';
   bool _keepScreenOn = false;
-  String _defaultBibleVersion = 'AKJV'; // DEFAULT
+  String _defaultBibleVersion = 'KJV'; // DEFAULT
 
   ThemeMode get mode => _mode;
   double get fontSize => _fontSize;
@@ -56,7 +56,7 @@ class ThemeService extends ChangeNotifier {
     _keepScreenOn = prefs.getBool(_keepScreenOnKey) ?? false;
     await _applyKeepScreenOn(_keepScreenOn);
 
-    _defaultBibleVersion = prefs.getString(_defaultBibleKey) ?? 'AKJV';
+    _defaultBibleVersion = prefs.getString(_defaultBibleKey) ?? 'KJV';
 
     notifyListeners();
   }
